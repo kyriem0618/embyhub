@@ -8,6 +8,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const EmbyClient = require('./api/emby');
+const { initDatabase } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,6 +18,22 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ============ 数据库初始化 ============
+
+let db = null;
+
+async function initializeApp() {
+  try {
+    db = await initDatabase();
+    console.log('[App] Database initialized');
+  } catch (error) {
+    console.error('[App] Database initialization failed:', error.message);
+    console.log('[App] Continuing without database (some features disabled)');
+  }
+}
+
+initializeApp();
 
 // ============ Emby 客户端初始化 ============
 
