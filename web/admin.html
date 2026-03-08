@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmbyHub - 管理面板</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
+  <!-- 导航栏 -->
+  <nav class="bg-white dark:bg-gray-800 shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <span class="text-3xl">🎬</span>
+          <div>
+            <h1 class="text-xl font-bold text-gray-800 dark:text-white">EmbyHub</h1>
+            <p class="text-xs text-gray-500 dark:text-gray-400">管理面板</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <button onclick="showTab('users')" class="text-blue-600 dark:text-blue-400 font-medium">用户</button>
+          <button onclick="showTab('codes')" class="text-gray-600 dark:text-gray-300 hover:text-blue-600">续期码</button>
+          <button onclick="showTab('logs')" class="text-gray-600 dark:text-gray-300 hover:text-blue-600">日志</button>
+          <button onclick="showTab('sessions')" class="text-gray-600 dark:text-gray-300 hover:text-blue-600">会话</button>
+          <button id="darkModeToggle" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">🌙</button>
+          <button onclick="logout()" class="text-red-600 hover:text-red-700 font-medium">退出</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主内容 -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <p class="text-gray-500 dark:text-gray-400 text-sm">总用户</p>
+        <p id="totalUsers" class="text-3xl font-bold text-gray-800 dark:text-white mt-1">-</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <p class="text-gray-500 dark:text-gray-400 text-sm">活跃用户</p>
+        <p id="activeUsers" class="text-3xl font-bold text-green-600 mt-1">-</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <p class="text-gray-500 dark:text-gray-400 text-sm">已过期</p>
+        <p id="expiredUsers" class="text-3xl font-bold text-red-600 mt-1">-</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <p class="text-gray-500 dark:text-gray-400 text-sm">活跃会话</p>
+        <p id="activeSessions" class="text-3xl font-bold text-purple-600 mt-1">-</p>
+      </div>
+    </div>
+
+    <!-- 用户管理 -->
+    <div id="usersTab" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+      <div class="p-6 border-b dark:border-gray-700 flex justify-between items-center">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white">用户管理</h2>
+        <button onclick="showCreateUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">➕ 创建用户</button>
+      </div>
+      <div class="p-6">
+        <div class="flex space-x-3 mb-4">
+          <input type="text" id="userSearch" placeholder="搜索用户名..." oninput="searchUsers()" class="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" />
+          <button onclick="searchUsers()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">🔍 搜索</button>
+        </div>
+        <div id="userList" class="space-y-3">
+          <p class="text-gray-500 text-center py-8">加载中...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 续期码管理 -->
+    <div id="codesTab" class="hidden bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+      <div class="p-6 border-b dark:border-gray-700 flex justify-between items-center">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white">续期码管理</h2>
+        <button onclick="showCreateCodeModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">➕ 生成续期码</button>
+      </div>
+      <div class="p-6">
+        <input type="text" id="codeSearch" placeholder="搜索续期码..." oninput="filterCodes()" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700 dark:text-white" />
+        <div id="codeList" class="space-y-3">
+          <p class="text-gray-500 text-center py-8">加载中...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 续期日志 -->
+    <div id="logsTab" class="hidden bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+      <div class="p-6 border-b dark:border-gray-700">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white">续期日志</h2>
+      </div>
+      <div class="p-6">
+        <div id="logsList" class="space-y-3">
+          <p class="text-gray-500 text-center py-8">加载中...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 会话监控 -->
+    <div id="sessionsTab" class="hidden bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+      <div class="p-6 border-b dark:border-gray-700 flex justify-between items-center">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white">活跃会话</h2>
+        <button onclick="loadSessions()" class="text-blue-600 hover:underline text-sm">🔄 刷新</button>
+      </div>
+      <div class="p-6">
+        <div id="sessionList" class="space-y-3">
+          <p class="text-gray-500 text-center py-8">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 创建用户模态框 -->
+  <div id="createUserModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">创建用户</h3>
+      <input type="text" id="newUserName" placeholder="用户名" class="w-full px-4 py-3 border dark:border-gray-600 rounded-xl mb-3 dark:bg-gray-700 dark:text-white" />
+      <input type="password" id="newUserPassword" placeholder="密码 (可选)" class="w-full px-4 py-3 border dark:border-gray-600 rounded-xl mb-3 dark:bg-gray-700 dark:text-white" />
+      <input type="number" id="newUserDays" placeholder="有效期 (天，0=永久)" class="w-full px-4 py-3 border dark:border-gray-600 rounded-xl mb-4 dark:bg-gray-700 dark:text-white" />
+      <label class="flex items-center space-x-2 mb-4">
+        <input type="checkbox" id="newUserIsAdmin" class="rounded" />
+        <span class="text-gray-700 dark:text-gray-300">管理员权限</span>
+      </label>
+      <div class="flex justify-end space-x-3">
+        <button onclick="hideCreateUserModal()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button>
+        <button onclick="createUser()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 生成续期码模态框 -->
+  <div id="createCodeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">生成续期码</h3>
+      <input type="number" id="codeDays" value="30" placeholder="有效期 (天)" class="w-full px-4 py-3 border dark:border-gray-600 rounded-xl mb-3 dark:bg-gray-700 dark:text-white" />
+      <input type="number" id="codeCount" value="1" min="1" max="100" placeholder="生成数量" class="w-full px-4 py-3 border dark:border-gray-600 rounded-xl mb-4 dark:bg-gray-700 dark:text-white" />
+      <div class="flex justify-end space-x-3">
+        <button onclick="hideCreateCodeModal()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button>
+        <button onclick="createCodes()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg">生成</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    const token = localStorage.getItem('token');
+    let allUsers = [];
+    let allCodes = [];
+    let allLogs = [];
+
+    if (!token) window.location.href = '/';
+
+    // Tab 切换
+    function showTab(tab) {
+      ['usersTab', 'codesTab', 'logsTab', 'sessionsTab'].forEach(id => {
+        document.getElementById(id)?.classList.add('hidden');
+      });
+      document.getElementById(tab + 'Tab')?.classList.remove('hidden');
+      
+      if (tab === 'users') loadUsers();
+      if (tab === 'codes') loadCodes();
+      if (tab === 'logs') loadLogs();
+      if (tab === 'sessions') loadSessions();
+    }
+
+    // 加载统计
+    async function loadStats() {
+      try {
+        const res = await fetch(`${API}/admin/stats`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        
+        document.getElementById('totalUsers').textContent = data.totalUsers;
+        document.getElementById('activeUsers').textContent = data.activeUsers;
+        document.getElementById('expiredUsers').textContent = data.expiredUsers;
+        document.getElementById('activeSessions').textContent = data.activeSessions;
+      } catch (e) {}
+    }
+
+    // 加载用户
+    async function loadUsers() {
+      try {
+        const res = await fetch(`${API}/admin/users`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        allUsers = await res.json();
+        renderUsers(allUsers);
+      } catch (e) {
+        document.getElementById('userList').innerHTML = '<p class="text-red-600 text-center">加载失败</p>';
+      }
+    }
+
+    function renderUsers(users) {
+      const list = document.getElementById('userList');
+      if (users.length === 0) {
+        list.innerHTML = '<p class="text-gray-500 text-center py-8">暂无用户</p>';
+        return;
+      }
+      
+      list.innerHTML = users.map(u => {
+        const expiresDate = u.expires_at ? new Date(u.expires_at) : null;
+        const daysLeft = expiresDate ? Math.floor((expiresDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
+        const isExpired = daysLeft !== null && daysLeft < 0;
+        
+        return `
+          <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                ${u.username.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p class="font-medium text-gray-800 dark:text-white">${u.username} ${u.is_admin == 1 ? '<span class="text-xs bg-purple-600 text-white px-2 py-0.5 rounded">管理</span>' : ''}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  ${u.expires_at ? (isExpired ? '<span class="text-red-600">已过期</span>' : `还剩${daysLeft}天 (${new Date(u.expires_at).toLocaleDateString()})`) : '<span class="text-green-600">永久</span>'} 
+                  ${u.is_active != 1 ? '<span class="text-red-600 ml-2">已禁用</span>' : ''}
+                </p>
+              </div>
+            </div>
+            <div class="flex space-x-2">
+              <button onclick="resetPassword('${u.id}')" class="px-3 py-1 text-sm bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg">改密</button>
+              <button onclick="toggleUserStatus('${u.id}', ${u.is_active})" class="px-3 py-1 text-sm ${u.is_active == 1 ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white rounded-lg">${u.is_active == 1 ? '禁用' : '启用'}</button>
+              <button onclick="deleteUser('${u.id}', '${u.username}')" class="px-3 py-1 text-sm bg-red-800 hover:bg-red-900 text-white rounded-lg">删除</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterUsers() {
+      const query = document.getElementById('userSearch').value.toLowerCase();
+      const filtered = allUsers.filter(u => u.username.toLowerCase().includes(query));
+      renderUsers(filtered);
+    }
+
+    async function searchUsers() {
+      const query = document.getElementById('userSearch').value.trim();
+      if (!query) {
+        loadUsers();
+        return;
+      }
+      try {
+        const res = await fetch(`${API}/admin/users/search?q=${encodeURIComponent(query)}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const users = await res.json();
+        renderUsers(users);
+      } catch (e) {
+        alert('搜索失败');
+      }
+    }
+
+    // 创建用户
+    async function createUser() {
+      const username = document.getElementById('newUserName').value.trim();
+      const password = document.getElementById('newUserPassword').value;
+      const days = parseInt(document.getElementById('newUserDays').value) || 0;
+      const isAdmin = document.getElementById('newUserIsAdmin').checked;
+      
+      if (!username) return alert('请输入用户名');
+      
+      try {
+        const res = await fetch(`${API}/admin/users`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password, days, isAdmin })
+        });
+        
+        if (res.ok) {
+          alert('创建成功');
+          hideCreateUserModal();
+          loadUsers();
+          loadStats();
+        } else {
+          const data = await res.json();
+          alert('创建失败：' + data.error);
+        }
+      } catch (e) {
+        alert('创建失败：' + e.message);
+      }
+    }
+
+    function showCreateUserModal() {
+      document.getElementById('createUserModal').classList.remove('hidden');
+    }
+
+    function hideCreateUserModal() {
+      document.getElementById('createUserModal').classList.add('hidden');
+      document.getElementById('newUserName').value = '';
+      document.getElementById('newUserPassword').value = '';
+      document.getElementById('newUserDays').value = '';
+      document.getElementById('newUserIsAdmin').checked = false;
+    }
+
+    // 重置密码
+    async function resetPassword(userId) {
+      const newPassword = prompt('输入新密码:');
+      if (!newPassword) return;
+      
+      try {
+        const res = await fetch(`${API}/admin/users/${userId}/reset-password`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ newPassword })
+        });
+        
+        if (res.ok) alert('密码已重置');
+        else alert('重置失败');
+      } catch (e) {
+        alert('重置失败：' + e.message);
+      }
+    }
+
+    // 切换用户状态
+    async function toggleUserStatus(userId, isActive) {
+      if (!confirm(`确定要${isActive ? '禁用' : '启用'}此用户吗？`)) return;
+      
+      try {
+        const res = await fetch(`${API}/admin/users/${userId}`, {
+          method: 'PUT',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ isActive: !isActive })
+        });
+        
+        if (res.ok) {
+          loadUsers();
+          loadStats();
+        } else alert('操作失败');
+      } catch (e) {
+        alert('操作失败：' + e.message);
+      }
+    }
+
+    // 删除用户
+    async function deleteUser(userId, username) {
+      if (!confirm(`确定删除用户 "${username}"？此操作不可恢复！`)) return;
+      
+      try {
+        const res = await fetch(`${API}/admin/users/${userId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+          alert('已删除');
+          loadUsers();
+          loadStats();
+        } else alert('删除失败');
+      } catch (e) {
+        alert('删除失败：' + e.message);
+      }
+    }
+
+    // 续期码
+    async function loadCodes() {
+      try {
+        const res = await fetch(`${API}/admin/codes`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        allCodes = await res.json();
+        renderCodes(allCodes);
+      } catch (e) {
+        document.getElementById('codeList').innerHTML = '<p class="text-red-600 text-center">加载失败</p>';
+      }
+    }
+
+    function renderCodes(codes) {
+      const list = document.getElementById('codeList');
+      if (codes.length === 0) {
+        list.innerHTML = '<p class="text-gray-500 text-center py-8">暂无续期码</p>';
+        return;
+      }
+      
+      list.innerHTML = codes.map(c => `
+        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+          <div>
+            <p class="font-mono text-lg font-bold text-blue-600">${c.code}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              ${c.days}天 | 过期：${new Date(c.expires_at).toLocaleDateString()} | ${c.is_used == 1 ? '<span class="text-green-600">已使用</span>' : '<span class="text-orange-600">未使用</span>'}
+            </p>
+          </div>
+          <button onclick="copyCode('${c.code}')" class="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg">复制</button>
+        </div>
+      `).join('');
+    }
+
+    function showCreateCodeModal() {
+      document.getElementById('createCodeModal').classList.remove('hidden');
+    }
+
+    function hideCreateCodeModal() {
+      document.getElementById('createCodeModal').classList.add('hidden');
+      document.getElementById('codeDays').value = '30';
+      document.getElementById('codeCount').value = '1';
+    }
+
+    async function createCodes() {
+      const days = parseInt(document.getElementById('codeDays').value) || 30;
+      const count = parseInt(document.getElementById('codeCount').value) || 1;
+      
+      try {
+        const res = await fetch(`${API}/admin/codes`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ days, count })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          alert(`生成${data.codes.length}个续期码`);
+          hideCreateCodeModal();
+          loadCodes();
+        } else {
+          alert('生成失败：' + data.error);
+        }
+      } catch (e) {
+        alert('生成失败：' + e.message);
+      }
+    }
+
+    function copyCode(code) {
+      navigator.clipboard.writeText(code);
+      alert('已复制到剪贴板');
+    }
+
+    function filterCodes() {
+      const query = document.getElementById('codeSearch').value.toLowerCase();
+      const filtered = allCodes.filter(c => c.code.toLowerCase().includes(query));
+      renderCodes(filtered);
+    }
+
+    async function loadLogs() {
+      try {
+        const res = await fetch(`${API}/admin/redemption-logs`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        allLogs = await res.json();
+        
+        const list = document.getElementById('logsList');
+        if (allLogs.length === 0) {
+          list.innerHTML = '<p class="text-gray-500 text-center py-8">暂无续期记录</p>';
+          return;
+        }
+        
+        list.innerHTML = allLogs.map(log => `
+          <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="font-medium text-gray-800 dark:text-white">${log.username || '未知用户'} 使用了续期码 <span class="font-mono text-blue-600">${log.code}</span></p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  添加 ${log.days_added} 天 | ${new Date(log.created_at).toLocaleString('zh-CN')}
+                </p>
+              </div>
+              <span class="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">+${log.days_added}天</span>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        document.getElementById('logsList').innerHTML = '<p class="text-red-600 text-center">加载失败</p>';
+      }
+    }
+
+    // 会话
+    async function loadSessions() {
+      try {
+        const res = await fetch(`${API}/sessions`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const sessions = await res.json();
+        
+        const list = document.getElementById('sessionList');
+        if (sessions.length === 0) {
+          list.innerHTML = '<p class="text-gray-500 text-center py-8">无活跃会话</p>';
+          return;
+        }
+        
+        list.innerHTML = sessions.map(s => `
+          <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+            <div>
+              <p class="font-medium text-gray-800 dark:text-white">${s.UserName || '未知'}</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">${s.DeviceName || '未知设备'} - ${s.NowPlayingItem ? s.NowPlayingItem.Name : '空闲'}</p>
+            </div>
+            <button onclick="stopSession('${s.Id}')" class="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg">停止</button>
+          </div>
+        `).join('');
+      } catch (e) {
+        document.getElementById('sessionList').innerHTML = '<p class="text-red-600 text-center">加载失败</p>';
+      }
+    }
+
+    async function stopSession(id) {
+      if (!confirm('停止此会话？')) return;
+      try {
+        await fetch(`${API}/sessions/${id}/stop`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        loadSessions();
+      } catch (e) {
+        alert('停止失败');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    }
+
+    // 深色模式
+    document.getElementById('darkModeToggle').addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+    });
+
+    if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark');
+
+    loadStats();
+    loadUsers();
+  </script>
+</body>
+</html>

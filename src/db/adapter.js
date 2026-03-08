@@ -80,6 +80,30 @@ class DatabaseAdapter {
   async clearOldLogs(days = 30) {
     throw new Error('Method clearOldLogs() must be implemented');
   }
+
+  // ============ 续期码表 ============
+  
+  async createRedemptionCode(codeData) {
+    throw new Error('Method createRedemptionCode() must be implemented');
+  }
+
+  async getValidRedemptionCode(code) {
+    throw new Error('Method getValidRedemptionCode() must be implemented');
+  }
+
+  async useRedemptionCode(id) {
+    throw new Error('Method useRedemptionCode() must be implemented');
+  }
+
+  async getAllRedemptionCodes() {
+    throw new Error('Method getAllRedemptionCodes() must be implemented');
+  }
+
+  // ============ 辅助方法 ============
+  
+  async getUserByUsername(username) {
+    throw new Error('Method getUserByUsername() must be implemented');
+  }
 }
 
 module.exports = DatabaseAdapter;

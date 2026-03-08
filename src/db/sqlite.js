@@ -32,11 +32,12 @@ class SQLiteAdapter extends DatabaseAdapter {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         emby_id TEXT UNIQUE,
         telegram_id TEXT UNIQUE,
-        username TEXT NOT NULL,
+        username TEXT NOT NULL UNIQUE,
         email TEXT,
         password_hash TEXT,
         is_admin INTEGER DEFAULT 0,
         is_active INTEGER DEFAULT 1,
+        expires_at DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -70,13 +71,61 @@ class SQLiteAdapter extends DatabaseAdapter {
       )
     `);
 
+    // 创建续期码表
+    this.client.exec(`
+      CREATE TABLE IF NOT EXISTS redemption_codes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT UNIQUE NOT NULL,
+        days INTEGER NOT NULL DEFAULT 30,
+        expires_at DATETIME NOT NULL,
+        is_used INTEGER DEFAULT 0,
+        used_by INTEGER,
+        used_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (used_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 创建观影记录表
+    this.client.exec(`
+      CREATE TABLE IF NOT EXISTS play_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        emby_item_id TEXT,
+        item_name TEXT,
+        item_type TEXT,
+        play_duration INTEGER DEFAULT 0,
+        played_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 创建续期日志表
+    this.client.exec(`
+      CREATE TABLE IF NOT EXISTS redemption_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        code_id INTEGER,
+        code TEXT,
+        days_added INTEGER,
+        old_expires_at DATETIME,
+        new_expires_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (code_id) REFERENCES redemption_codes(id) ON DELETE CASCADE
+      )
+    `);
+
     // 创建索引
     this.client.exec(`
       CREATE INDEX IF NOT EXISTS idx_users_emby ON users(emby_id);
       CREATE INDEX IF NOT EXISTS idx_users_telegram ON users(telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
       CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
       CREATE INDEX IF NOT EXISTS idx_logs_user ON logs(user_id);
       CREATE INDEX IF NOT EXISTS idx_logs_created ON logs(created_at);
+      CREATE INDEX IF NOT EXISTS idx_codes_code ON redemption_codes(code);
+      CREATE INDEX IF NOT EXISTS idx_codes_used ON redemption_codes(is_used);
     `);
 
     console.log('[DB] SQLite tables initialized');
@@ -262,6 +311,120 @@ class SQLiteAdapter extends DatabaseAdapter {
       WHERE created_at < datetime('now', '-' || ? || ' days')
     `);
     return stmt.run(days);
+  }
+
+  // ============ 续期码操作 ============
+  
+  createRedemptionCode(codeData) {
+    const stmt = this.client.prepare(`
+      INSERT INTO redemption_codes (code, days, expires_at, is_used)
+      VALUES (?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      codeData.code,
+      codeData.days,
+      codeData.expiresAt,
+      codeData.isUsed ? 1 : 0
+    );
+    
+    return this.getRedemptionCodeById(result.lastInsertRowid);
+  }
+
+  getRedemptionCodeById(id) {
+    const stmt = this.client.prepare('SELECT * FROM redemption_codes WHERE id = ?');
+    return stmt.get(id);
+  }
+
+  getValidRedemptionCode(code) {
+    const stmt = this.client.prepare('SELECT * FROM redemption_codes WHERE code = ? AND is_used = 0');
+    return stmt.get(code);
+  }
+
+  useRedemptionCode(id) {
+    const stmt = this.client.prepare(`
+      UPDATE redemption_codes 
+      SET is_used = 1, used_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
+    return stmt.run(id);
+  }
+
+  getAllRedemptionCodes() {
+    const stmt = this.client.prepare('SELECT * FROM redemption_codes ORDER BY created_at DESC');
+    return stmt.all();
+  }
+
+  // ============ 辅助方法 ============
+  
+  getUserByUsername(username) {
+    const stmt = this.client.prepare('SELECT * FROM users WHERE username = ?');
+    return stmt.get(username);
+  }
+
+  // ============ 观影记录 ============
+  
+  createPlayHistory(data) {
+    const stmt = this.client.prepare(`
+      INSERT INTO play_history (user_id, emby_item_id, item_name, item_type, play_duration, played_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    const result = stmt.run(data.userId, data.embyItemId, data.itemName, data.itemType, data.playDuration, data.playedAt || new Date().toISOString());
+    return result.lastInsertRowid;
+  }
+
+  getUserPlayHistory(userId, limit = 50) {
+    const stmt = this.client.prepare(`
+      SELECT * FROM play_history WHERE user_id = ? ORDER BY played_at DESC LIMIT ?
+    `);
+    return stmt.all(userId, limit);
+  }
+
+  getUserPlayStats(userId) {
+    const stmt = this.client.prepare(`
+      SELECT 
+        COUNT(*) as totalPlays,
+        SUM(play_duration) as totalDuration,
+        COUNT(DISTINCT DATE(played_at)) as activeDays
+      FROM play_history WHERE user_id = ?
+    `);
+    return stmt.get(userId);
+  }
+
+  // ============ 续期日志 ============
+  
+  createRedemptionLog(data) {
+    const stmt = this.client.prepare(`
+      INSERT INTO redemption_logs (user_id, code_id, code, days_added, old_expires_at, new_expires_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    const result = stmt.run(data.userId, data.codeId, data.code, data.daysAdded, data.oldExpiresAt, data.newExpiresAt);
+    return result.lastInsertRowid;
+  }
+
+  getRedemptionLogs(userId = null, limit = 100) {
+    if (userId) {
+      const stmt = this.client.prepare(`
+        SELECT * FROM redemption_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
+      `);
+      return stmt.all(userId, limit);
+    }
+    const stmt = this.client.prepare(`
+      SELECT rl.*, u.username FROM redemption_logs rl 
+      LEFT JOIN users u ON rl.user_id = u.id 
+      ORDER BY rl.created_at DESC LIMIT ?
+    `);
+    return stmt.all(limit);
+  }
+
+  // ============ 搜索用户 ============
+  
+  searchUsers(query) {
+    const stmt = this.client.prepare(`
+      SELECT * FROM users WHERE username LIKE ? OR email LIKE ? ORDER BY created_at DESC
+    `);
+    const searchQuery = `%${query}%`;
+    return stmt.all(searchQuery, searchQuery);
   }
 }
 

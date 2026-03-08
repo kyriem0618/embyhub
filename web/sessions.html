@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmbyHub - 会话监控</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
+  <nav class="bg-white dark:bg-gray-800 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <span class="text-3xl">🎬</span>
+          <div>
+            <h1 class="text-xl font-bold text-gray-800 dark:text-white">EmbyHub</h1>
+            <p class="text-xs text-gray-500 dark:text-gray-400">会话监控</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <a href="/" class="text-gray-600 dark:text-gray-300 hover:text-blue-600">仪表盘</a>
+          <a href="/users" class="text-gray-600 dark:text-gray-300 hover:text-blue-600">用户</a>
+          <a href="/sessions" class="text-blue-600 dark:text-blue-400 font-medium">会话</a>
+          <button id="darkModeToggle" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">🌙</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+      <div class="p-6 border-b dark:border-gray-700 flex justify-between items-center">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white">活跃会话</h2>
+        <button onclick="loadSessions()" class="text-blue-600 hover:underline text-sm">🔄 刷新</button>
+      </div>
+      <div class="p-6">
+        <div id="sessionList" class="space-y-3">
+          <p class="text-gray-500 text-center py-8">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const API = '/api';
+
+    document.getElementById('darkModeToggle').addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+    });
+
+    if (localStorage.getItem('darkMode') === 'true') {
+      document.body.classList.add('dark');
+    }
+
+    async function loadSessions() {
+      try {
+        const res = await fetch(`${API}/sessions`);
+        const sessions = await res.json();
+        const list = document.getElementById('sessionList');
+        
+        if (sessions.length === 0) {
+          list.innerHTML = `
+            <div class="text-center py-12">
+              <div class="text-6xl mb-4">✅</div>
+              <p class="text-gray-500 dark:text-gray-400 text-lg">当前无活跃会话</p>
+            </div>
+          `;
+          return;
+        }
+        
+        list.innerHTML = sessions.map(session => `
+          <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+            <div class="flex items-center space-x-4 flex-1">
+              <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                ${(session.UserName || '?').charAt(0).toUpperCase()}
+              </div>
+              <div class="flex-1">
+                <p class="font-medium text-gray-800 dark:text-white">${session.UserName || '未知用户'}</p>
+                <div class="text-sm text-gray-500 dark:text-gray-400 space-x-2">
+                  <span>📱 ${session.DeviceName || '未知设备'}</span>
+                  <span>•</span>
+                  <span>🎬 ${session.NowPlayingItem ? session.NowPlayingItem.Name : '空闲'}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center space-x-3">
+              <span class="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded-full">
+                活跃
+              </span>
+              <button onclick="stopSession('${session.Id}', '${session.UserName || '未知'}')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm">
+                ⏹️ 停止
+              </button>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        document.getElementById('sessionList').innerHTML = '<p class="text-red-600 text-center py-8">加载失败</p>';
+      }
+    }
+
+    async function stopSession(id, userName) {
+      if (!confirm(`停止 "${userName}" 的会话？`)) return;
+      
+      try {
+        const res = await fetch(`${API}/sessions/${id}/stop`, { method: 'POST' });
+        if (res.ok) {
+          alert('会话已停止');
+          loadSessions();
+        } else {
+          alert('停止失败');
+        }
+      } catch (e) {
+        alert('停止失败：' + e.message);
+      }
+    }
+
+    loadSessions();
+    setInterval(loadSessions, 30000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmbyHub - 用户管理</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
+  <!-- 导航栏 -->
+  <nav class="bg-white dark:bg-gray-800 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <span class="text-3xl">🎬</span>
+          <div>
+            <h1 class="text-xl font-bold text-gray-800 dark:text-white">EmbyHub</h1>
+            <p class="text-xs text-gray-500 dark:text-gray-400">用户管理</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <a href="/" class="text-gray-600 dark:text-gray-300 hover:text-blue-600">仪表盘</a>
+          <a href="/users" class="text-blue-600 dark:text-blue-400 font-medium">用户</a>
+          <a href="/sessions" class="text-gray-600 dark:text-gray-300 hover:text-blue-600">会话</a>
+          <button id="darkModeToggle" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">🌙</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主内容 -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+      <div class="p-6 border-b dark:border-gray-700 flex justify-between items-center">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white">用户列表</h2>
+        <button onclick="showCreateModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+          ➕ 新建用户
+        </button>
+      </div>
+      <div class="p-6">
+        <div class="mb-4">
+          <input type="text" id="searchInput" placeholder="搜索用户..." oninput="filterUsers()" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white" />
+        </div>
+        <div id="userList" class="space-y-3">
+          <p class="text-gray-500 text-center py-8">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 创建用户模态框 -->
+  <div id="createModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">创建新用户</h3>
+      <input type="text" id="newUserName" placeholder="用户名" class="w-full px-4 py-3 border dark:border-gray-600 rounded-xl mb-3 dark:bg-gray-700 dark:text-white" />
+      <input type="password" id="newUserPassword" placeholder="密码 (可选)" class="w-full px-4 py-3 border dark:border-gray-600 rounded-xl mb-4 dark:bg-gray-700 dark:text-white" />
+      <div class="flex justify-end space-x-3">
+        <button onclick="hideCreateModal()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button>
+        <button onclick="createUser()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 重置密码模态框 -->
+  <div id="passwordModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">重置密码</h3>
+      <input type="password" id="newPassword" placeholder="新密码" class="w-full px-4 py-3 border dark:border-gray-600 rounded-xl mb-4 dark:bg-gray-700 dark:text-white" />
+      <div class="flex justify-end space-x-3">
+        <button onclick="hidePasswordModal()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button>
+        <button onclick="confirmResetPassword()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    let allUsers = [];
+    let currentUserId = null;
+
+    // 深色模式
+    document.getElementById('darkModeToggle').addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+    });
+
+    if (localStorage.getItem('darkMode') === 'true') {
+      document.body.classList.add('dark');
+    }
+
+    // 加载用户
+    async function loadUsers() {
+      try {
+        const res = await fetch(`${API}/users`);
+        allUsers = await res.json();
+        renderUsers(allUsers);
+      } catch (e) {
+        document.getElementById('userList').innerHTML = '<p class="text-red-600 text-center py-8">加载失败</p>';
+      }
+    }
+
+    function renderUsers(users) {
+      const list = document.getElementById('userList');
+      
+      if (users.length === 0) {
+        list.innerHTML = '<p class="text-gray-500 text-center py-8">暂无用户</p>';
+        return;
+      }
+      
+      list.innerHTML = users.map(user => `
+        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl user-item">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+              ${user.Name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p class="font-medium text-gray-800 dark:text-white">${user.Name}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">ID: ${user.Id}</p>
+            </div>
+          </div>
+          <div class="flex space-x-2">
+            <button onclick="showPasswordModal('${user.Id}')" class="px-3 py-1 text-sm bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg">重置密码</button>
+            <button onclick="deleteUser('${user.Id}', '${user.Name}')" class="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg">删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterUsers() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = allUsers.filter(u => u.Name.toLowerCase().includes(query));
+      renderUsers(filtered);
+    }
+
+    function showCreateModal() {
+      document.getElementById('createModal').classList.remove('hidden');
+    }
+
+    function hideCreateModal() {
+      document.getElementById('createModal').classList.add('hidden');
+      document.getElementById('newUserName').value = '';
+      document.getElementById('newUserPassword').value = '';
+    }
+
+    function showPasswordModal(userId) {
+      currentUserId = userId;
+      document.getElementById('passwordModal').classList.remove('hidden');
+    }
+
+    function hidePasswordModal() {
+      document.getElementById('passwordModal').classList.add('hidden');
+      document.getElementById('newPassword').value = '';
+      currentUserId = null;
+    }
+
+    async function createUser() {
+      const name = document.getElementById('newUserName').value.trim();
+      const password = document.getElementById('newUserPassword').value;
+      
+      if (!name) return alert('请输入用户名');
+      
+      try {
+        const res = await fetch(`${API}/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, password })
+        });
+        
+        if (res.ok) {
+          alert('用户创建成功！');
+          hideCreateModal();
+          loadUsers();
+        } else {
+          const data = await res.json();
+          alert('创建失败：' + data.error);
+        }
+      } catch (e) {
+        alert('创建失败：' + e.message);
+      }
+    }
+
+    async function confirmResetPassword() {
+      const password = document.getElementById('newPassword').value;
+      if (!password) return alert('请输入密码');
+      
+      try {
+        const res = await fetch(`${API}/users/${currentUserId}/password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newPassword: password })
+        });
+        
+        if (res.ok) {
+          alert('密码已重置！');
+          hidePasswordModal();
+        } else {
+          alert('重置失败');
+        }
+      } catch (e) {
+        alert('重置失败：' + e.message);
+      }
+    }
+
+    async function deleteUser(id, name) {
+      if (!confirm(`确定要删除用户 "${name}" 吗？此操作不可恢复！`)) return;
+      
+      try {
+        const res = await fetch(`${API}/users/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          alert('用户已删除');
+          loadUsers();
+        } else {
+          alert('删除失败');
+        }
+      } catch (e) {
+        alert('删除失败：' + e.message);
+      }
+    }
+
+    // 初始化
+    loadUsers();
+  </script>
+</body>
+</html>

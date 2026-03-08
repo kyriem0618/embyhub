@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmbyHub - 登录</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 min-h-screen flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div class="text-6xl mb-4">🎬</div>
+      <h1 class="text-3xl font-bold text-gray-800 dark:text-white">EmbyHub</h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">媒体服务器管理平台</p>
+    </div>
+
+    <!-- 登录表单 -->
+    <form id="loginForm" class="space-y-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">用户名</label>
+        <input type="text" id="username" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white" placeholder="请输入用户名" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">密码</label>
+        <input type="password" id="password" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white" placeholder="请输入密码" />
+      </div>
+
+      <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 rounded-xl transition transform hover:scale-105">
+        登录
+      </button>
+    </form>
+
+    <!-- 注册链接 -->
+    <div class="mt-6 text-center">
+      <p class="text-gray-600 dark:text-gray-400">
+        还没有账号？
+        <a href="/register.html" class="text-blue-600 hover:underline font-medium">使用续期码注册</a>
+      </p>
+    </div>
+
+    <!-- 错误提示 -->
+    <div id="errorMsg" class="hidden mt-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-xl text-sm"></div>
+  </div>
+
+  <script>
+    const API = '/api';
+
+    // 检查是否已登录
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch(`${API}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          window.location.href = data.isAdmin ? '/admin' : '/dashboard';
+        }
+      })
+      .catch(() => {});
+    }
+
+    // 登录处理
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('errorMsg');
+      
+      try {
+        const res = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok && data.token) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          
+          // 根据角色跳转
+          window.location.href = data.user.isAdmin ? '/admin' : '/dashboard';
+        } else {
+          errorDiv.textContent = data.error || '登录失败';
+          errorDiv.classList.remove('hidden');
+        }
+      } catch (error) {
+        errorDiv.textContent = '网络错误，请稍后重试';
+        errorDiv.classList.remove('hidden');
+      }
+    });
+
+    // 深色模式检测
+    if (localStorage.getItem('darkMode') === 'true' || (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.body.classList.add('dark');
+    }
+  </script>
+</body>
+</html>
