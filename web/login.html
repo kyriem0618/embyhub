@@ -345,7 +345,7 @@
           localStorage.setItem('user', JSON.stringify(data.user));
           showToast('登录成功', 'success');
           setTimeout(() => {
-            window.location.href = data.user.isAdmin ? '/admin' : '/d';
+            window.location.href = '/d';
           }, 500);
         } else {
           showToast(data.error || '登录失败', 'error');
