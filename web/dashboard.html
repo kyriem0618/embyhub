@@ -127,6 +127,10 @@
         <i data-lucide="shopping-bag" class="w-4 h-4"></i>
         <span>商城</span>
       </button>
+      <button onclick="showTab('rank')" id="tab-rank" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+        <i data-lucide="trophy" class="w-4 h-4"></i>
+        <span>排行榜</span>
+      </button>
       <button onclick="showTab('invite')" id="tab-invite" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
         <i data-lucide="users" class="w-4 h-4"></i>
         <span>邀请</span>
@@ -347,6 +351,21 @@
       </div>
     </div>
 
+    <!-- Rank Tab -->
+    <div id="panel-rank" class="tab-panel hidden">
+      <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
+        <div class="p-4 border-b border-gray-200/50 dark:border-gray-700/50">
+          <h3 class="font-semibold text-gray-800 dark:text-white flex items-center">
+            <i data-lucide="trophy" class="w-5 h-5 mr-2 text-yellow-600"></i>
+            金币排行榜
+          </h3>
+        </div>
+        <div id="rank-list" class="divide-y divide-gray-100 dark:divide-gray-800 max-h-[60vh] overflow-y-auto">
+          <div class="p-4 text-center text-gray-500">加载中...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Ticket Tab -->
     <div id="panel-ticket" class="tab-panel hidden">
       <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
@@ -388,9 +407,9 @@
           </div>
         </div>
 
-        <!-- Quick Admin Actions -->
+        <!-- Admin Actions -->
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <button onclick="showAdminUsers()" class="glass-card rounded-xl p-4 flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+          <button onclick="showAdminUsersModal()" class="glass-card rounded-xl p-4 flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
             <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
               <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
             </div>
@@ -399,7 +418,7 @@
               <p class="text-xs text-gray-500">创建/禁用/删除</p>
             </div>
           </button>
-          <button onclick="showAdminCodes()" class="glass-card rounded-xl p-4 flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+          <button onclick="showAdminCodesModal()" class="glass-card rounded-xl p-4 flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
             <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
               <i data-lucide="ticket" class="w-5 h-5 text-green-600"></i>
             </div>
@@ -408,7 +427,7 @@
               <p class="text-xs text-gray-500">生成/查看</p>
             </div>
           </button>
-          <button onclick="showAdminProducts()" class="glass-card rounded-xl p-4 flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+          <button onclick="showAdminProductsModal()" class="glass-card rounded-xl p-4 flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
             <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
               <i data-lucide="shopping-bag" class="w-5 h-5 text-yellow-600"></i>
             </div>
@@ -417,6 +436,19 @@
               <p class="text-xs text-gray-500">上架/下架</p>
             </div>
           </button>
+        </div>
+
+        <!-- Quick Product Management -->
+        <div class="glass-card rounded-2xl overflow-hidden">
+          <div class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
+            <h3 class="font-semibold text-gray-800 dark:text-white">商品管理</h3>
+            <button onclick="showCreateProductModal()" class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg">
+              <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>添加商品
+            </button>
+          </div>
+          <div id="admin-product-list" class="divide-y divide-gray-100 dark:divide-gray-800 max-h-64 overflow-y-auto">
+            <div class="p-4 text-center text-gray-500">加载中...</div>
+          </div>
         </div>
       </div>
     </div>
@@ -481,6 +513,7 @@
       
       if (name === 'checkin') loadCheckinStatus();
       if (name === 'shop') loadProducts();
+      if (name === 'rank') loadLeaderboard();
       if (name === 'invite') loadInviteCodes();
       if (name === 'ticket') loadTickets();
       if (name === 'admin') loadAdminStats();
@@ -641,6 +674,48 @@
             </div>
           </div>
         `).join('');
+        
+        lucide.createIcons();
+      } catch (e) { console.error(e); }
+    }
+
+    // Leaderboard
+    async function loadLeaderboard() {
+      try {
+        const res = await fetch(`${API}/leaderboard`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const list = await res.json();
+        const container = document.getElementById('rank-list');
+        
+        if (!list.length) {
+          container.innerHTML = '<div class="p-8 text-center text-gray-500">暂无数据</div>';
+          return;
+        }
+        
+        const rankIcons = ['🥇', '🥈', '🥉'];
+        
+        container.innerHTML = list.map((u, i) => {
+          const rank = i + 1;
+          const isMe = u.id === userData?.id;
+          return `
+            <div class="flex items-center p-4 ${isMe ? 'bg-blue-50 dark:bg-blue-900/20' : ''} hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+              <div class="w-10 text-center font-bold ${rank <= 3 ? 'text-2xl' : 'text-gray-500'}">
+                ${rank <= 3 ? rankIcons[rank-1] : rank}
+              </div>
+              <div class="flex-1 ml-4">
+                <div class="flex items-center space-x-2">
+                  <p class="font-medium text-gray-800 dark:text-white">${u.username}</p>
+                  ${isMe ? '<span class="text-xs text-blue-600">(我)</span>' : ''}
+                  <span class="level-badge level-${u.user_level || 1} text-xs">Lv.${u.user_level || 1}</span>
+                </div>
+                <p class="text-xs text-gray-500">签到 ${u.total_checkins || 0} 天 · 邀请 ${u.total_invites || 0} 人</p>
+              </div>
+              <div class="flex items-center space-x-1 text-yellow-600 font-bold">
+                <i data-lucide="coins" class="w-5 h-5"></i>
+                <span>${u.coins || 0}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
         
         lucide.createIcons();
       } catch (e) { console.error(e); }
@@ -877,48 +952,53 @@
         document.getElementById('admin-active').textContent = data.activeUsers || 0;
         document.getElementById('admin-expired').textContent = data.expiredUsers || 0;
         document.getElementById('admin-sessions').textContent = data.activeSessions || 0;
+        
+        // 加载商品列表
+        loadAdminProducts();
       } catch (e) { console.error(e); }
     }
 
-    function showAdminUsers() {
-      window.location.href = '/admin';
-    }
-
-    function showAdminCodes() {
-      window.location.href = '/admin';
-    }
-
-    async function showAdminProducts() {
+    async function loadAdminProducts() {
       try {
         const res = await fetch(`${API}/admin/products`, { headers: { 'Authorization': `Bearer ${token}` } });
         const products = await res.json();
+        const container = document.getElementById('admin-product-list');
         
-        document.getElementById('modal-content').innerHTML = `
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">商品管理</h3>
-            <button onclick="showCreateProduct()" class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg">添加商品</button>
+        if (!products.length) {
+          container.innerHTML = '<div class="p-4 text-center text-gray-500">暂无商品，点击上方"添加商品"创建</div>';
+          return;
+        }
+        
+        container.innerHTML = products.map(p => `
+          <div class="p-3 flex items-center justify-between">
+            <div>
+              <p class="font-medium text-gray-800 dark:text-white">${p.name}</p>
+              <p class="text-xs text-gray-500">${p.price} 金币 · 库存: ${p.stock < 0 ? '无限' : p.stock} · 奖励: ${p.days_reward || 0}天</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="badge ${p.is_active ? 'badge-success' : 'badge-danger'}">${p.is_active ? '上架' : '下架'}</span>
+              <button onclick="toggleProduct(${p.id}, ${p.is_active})" class="text-xs text-blue-600 hover:underline">${p.is_active ? '下架' : '上架'}</button>
+            </div>
           </div>
-          <div class="max-h-80 overflow-y-auto space-y-2">
-            ${products.length ? products.map(p => `
-              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                <div>
-                  <p class="font-medium text-gray-800 dark:text-white">${p.name}</p>
-                  <p class="text-xs text-gray-500">${p.price} 金币 · 库存: ${p.stock < 0 ? '无限' : p.stock}</p>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <span class="badge ${p.is_active ? 'badge-success' : 'badge-danger'}">${p.is_active ? '上架' : '下架'}</span>
-                  <button onclick="toggleProduct(${p.id}, ${p.is_active})" class="text-blue-600 text-sm">${p.is_active ? '下架' : '上架'}</button>
-                </div>
-              </div>
-            `).join('') : '<div class="text-center text-gray-500 py-4">暂无商品</div>'}
-          </div>
-          <button onclick="closeModal()" class="w-full mt-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">关闭</button>
-        `;
-        document.getElementById('modal').classList.remove('hidden');
-      } catch (e) { showToast('加载失败', 'error'); }
+        `).join('');
+        
+        lucide.createIcons();
+      } catch (e) { console.error(e); }
     }
 
-    function showCreateProduct() {
+    function showAdminUsersModal() {
+      window.location.href = '/admin';
+    }
+
+    function showAdminCodesModal() {
+      window.location.href = '/admin';
+    }
+
+    function showAdminProductsModal() {
+      // 已经在管理Tab中显示商品列表了
+    }
+
+    function showCreateProductModal() {
       document.getElementById('modal-content').innerHTML = `
         <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">添加商品</h3>
         <div class="space-y-3">
@@ -935,13 +1015,14 @@
           <button onclick="createProduct()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg">创建</button>
         </div>
       `;
+      document.getElementById('modal').classList.remove('hidden');
     }
 
     async function createProduct() {
       const name = document.getElementById('product-name').value.trim();
       const description = document.getElementById('product-desc').value.trim();
       const price = parseInt(document.getElementById('product-price').value) || 0;
-      const stock = parseInt(document.getElementById('product-stock').value) ?? -1;
+      const stock = parseInt(document.getElementById('product-stock').value);
       const daysReward = parseInt(document.getElementById('product-days').value) || 0;
       
       if (!name) { showToast('请输入商品名称', 'warning'); return; }
@@ -950,12 +1031,13 @@
         const res = await fetch(`${API}/admin/products`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, description, price, stock, daysReward, isActive: true })
+          body: JSON.stringify({ name, description, price, stock: isNaN(stock) ? -1 : stock, daysReward, isActive: true })
         });
         
         if (res.ok) {
           showToast('商品创建成功', 'success');
-          showAdminProducts();
+          closeModal();
+          loadAdminProducts();
         } else {
           const data = await res.json();
           showToast(data.error || '创建失败', 'error');
@@ -970,7 +1052,8 @@
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ isActive: !isActive })
         });
-        showAdminProducts();
+        loadAdminProducts();
+        showToast(isActive ? '商品已下架' : '商品已上架', 'success');
       } catch (e) { showToast('操作失败', 'error'); }
     }
 

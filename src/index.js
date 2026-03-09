@@ -605,6 +605,22 @@ app.get('/api/user/coin-logs', authenticateToken, async (req, res) => {
   }
 });
 
+// 金币排行榜
+app.get('/api/leaderboard', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await db.client.execute(`
+      SELECT id, username, coins, user_level, total_checkins, total_invites
+      FROM users 
+      WHERE is_active = 1
+      ORDER BY coins DESC 
+      LIMIT 50
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============ 工单 ============
 
 app.post('/api/user/tickets', authenticateToken, async (req, res) => {
