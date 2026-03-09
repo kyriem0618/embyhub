@@ -353,7 +353,7 @@
         <div class="flex space-x-2 border-b border-gray-200 dark:border-gray-700 pb-2">
           <button onclick="showAdminSub('products')" id="admin-sub-products" class="px-4 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600">商品管理</button>
           <button onclick="showAdminSub('users')" id="admin-sub-users" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">用户管理</button>
-          <button onclick="showAdminSub('codes')" id="admin-sub-codes" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">续期码</button>
+          <button onclick="showAdminSub('codes')" id="admin-sub-codes" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">会员卡</button>
         </div>
 
         <!-- Products -->
@@ -379,10 +379,10 @@
         <!-- Codes -->
         <div id="admin-panel-codes" class="hidden">
           <div class="flex justify-end mb-2">
-            <button onclick="showCreateCodeModal()" class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg"><i data-lucide="plus" class="w-4 h-4 inline"></i> 生成续期码</button>
+            <button onclick="showCreateCodeModal()" class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg"><i data-lucide="plus" class="w-4 h-4 inline"></i> 生成会员卡</button>
           </div>
           <div id="admin-code-list" class="glass-card rounded-xl divide-y divide-gray-100 dark:divide-gray-800 max-h-80 overflow-y-auto">
-            <div class="p-4 text-center text-gray-500">点击"续期码"加载</div>
+            <div class="p-4 text-center text-gray-500">点击"会员卡"加载</div>
           </div>
         </div>
       </div>
@@ -392,7 +392,7 @@
   <!-- Modal -->
   <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal()"></div>
-    <div class="relative w-full max-w-md glass-card rounded-2xl p-6 animate-fade-in max-h-[80vh] overflow-y-auto">
+    <div class="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl p-6 animate-fade-in max-h-[80vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-gray-700">
       <div id="modal-content"></div>
     </div>
   </div>
@@ -619,16 +619,16 @@
     }
 
     function showRedeemModal() {
-      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">使用续期码</h3><input type="text" id="redeem-code" placeholder="输入续期码" class="w-full px-4 py-3 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><button onclick="redeemCode()" class="w-full py-3 bg-teal-600 text-white rounded-lg">使用</button>';
+      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">使用会员卡</h3><input type="text" id="redeem-code" placeholder="输入会员卡号" class="w-full px-4 py-3 mb-4 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg"><button onclick="redeemCode()" class="w-full py-3 bg-teal-600 text-white rounded-lg">使用</button>';
       document.getElementById('modal').classList.remove('hidden');
     }
 
     async function redeemCode() {
       const code = document.getElementById('redeem-code').value.trim();
-      if (!code) { showToast('请输入续期码', 'warning'); return; }
+      if (!code) { showToast('请输入会员卡号', 'warning'); return; }
       try {
         const res = await fetch(API + '/user/redeem', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
-        if (res.ok) { showToast('续期成功', 'success'); closeModal(); loadUserInfo(); }
+        if (res.ok) { showToast('会员卡使用成功', 'success'); closeModal(); loadUserInfo(); }
         else { const d = await res.json(); showToast(d.error || '失败', 'error'); }
       } catch (e) { showToast('失败', 'error'); }
     }
@@ -695,7 +695,7 @@
         const products = await res.json();
         const container = document.getElementById('admin-product-list');
         if (!products.length) { container.innerHTML = '<div class="p-4 text-center text-gray-500">暂无商品</div>'; return; }
-        const typeNames = { days: '续期', tg_admin: 'TG群管', redemption_code: '续期码', default: '通用' };
+        const typeNames = { days: '会员卡', tg_admin: 'TG群管', redemption_code: '会员卡', default: '通用' };
         container.innerHTML = products.map(p => '<div class="p-3 flex justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"><div><p class="font-medium text-gray-800 dark:text-white">' + p.name + '</p><p class="text-xs text-gray-500">' + p.price + ' 金币 · ' + (p.stock < 0 ? '无限' : p.stock) + ' · ' + (typeNames[p.category] || '通用') + '</p></div><div class="flex items-center space-x-2"><span class="badge ' + (p.is_active ? 'badge-success' : 'badge-danger') + '">' + (p.is_active ? '上架' : '下架') + '</span><button onclick="toggleProduct(' + p.id + ',' + p.is_active + ')" class="text-xs text-blue-600 hover:underline">' + (p.is_active ? '下架' : '上架') + '</button></div></div>').join('');
         lucide.createIcons();
       } catch (e) { console.error(e); }
@@ -721,7 +721,7 @@
         const res = await fetch(API + '/admin/codes', { headers: { 'Authorization': 'Bearer ' + token } });
         const codes = await res.json();
         const container = document.getElementById('admin-code-list');
-        if (!codes.length) { container.innerHTML = '<div class="p-4 text-center text-gray-500">暂无续期码</div>'; return; }
+        if (!codes.length) { container.innerHTML = '<div class="p-4 text-center text-gray-500">暂无会员卡</div>'; return; }
         container.innerHTML = codes.slice(0, 20).map(c => '<div class="p-3 flex justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"><div><p class="font-mono font-medium text-gray-800 dark:text-white">' + c.code + '</p><p class="text-xs text-gray-500">' + c.days + ' 天 · ' + (c.is_used ? '已用' : '未用') + '</p></div><span class="badge ' + (c.is_used ? 'badge-danger' : 'badge-success') + '">' + (c.is_used ? '已用' : '有效') + '</span></div>').join('');
         lucide.createIcons();
       } catch (e) { console.error(e); }
@@ -744,7 +744,7 @@
     }
 
     function showCreateProductModal() {
-      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">添加商品</h3><div class="space-y-3"><input type="text" id="product-name" placeholder="商品名称" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><select id="product-type" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><option value="days">续期天数</select><input type="number" id="product-days" placeholder="天数" value="7" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><input type="number" id="product-price" placeholder="价格（金币）" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><input type="number" id="product-stock" placeholder="库存（-1无限）" value="-1" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"></div><div class="flex space-x-3 mt-4"><button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">取消</button><button onclick="createProduct()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg">创建</button></div>';
+      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">添加商品</h3><div class="space-y-3"><input type="text" id="product-name" placeholder="商品名称" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg"><select id="product-type" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg"><option value="days">续期天数</option></select><input type="number" id="product-days" placeholder="天数" value="7" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg"><input type="number" id="product-price" placeholder="价格（金币）" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg"><input type="number" id="product-stock" placeholder="库存（-1无限）" value="-1" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg"></div><div class="flex space-x-3 mt-4"><button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg">取消</button><button onclick="createProduct()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg">创建</button></div>';
       document.getElementById('modal').classList.remove('hidden');
     }
 
@@ -762,7 +762,7 @@
     }
 
     function showCreateUserModal() {
-      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">创建用户</h3><div class="space-y-3"><input type="text" id="new-username" placeholder="用户名" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><input type="password" id="new-password" placeholder="密码（留空自动生成）" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><select id="new-days" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><option value="0">永久</option><option value="30" selected>30 天</option><option value="90">90 天</option></select><label class="flex items-center space-x-2"><input type="checkbox" id="new-admin" class="rounded"><span class="text-sm text-gray-700 dark:text-gray-300">管理员</span></label></div><div class="flex space-x-3 mt-4"><button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">取消</button><button onclick="createUser()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg">创建</button></div>';
+      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">创建用户</h3><div class="space-y-3"><input type="text" id="new-username" placeholder="用户名" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg"><input type="password" id="new-password" placeholder="密码（留空自动生成）" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg"><select id="new-days" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg"><option value="0">永久</option><option value="30" selected>30 天</option><option value="90">90 天</option></select><label class="flex items-center space-x-2"><input type="checkbox" id="new-admin" class="rounded"><span class="text-sm text-gray-700 dark:text-gray-300">管理员</span></label></div><div class="flex space-x-3 mt-4"><button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg">取消</button><button onclick="createUser()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg">创建</button></div>';
       document.getElementById('modal').classList.remove('hidden');
     }
 
@@ -780,7 +780,7 @@
     }
 
     function showCreateCodeModal() {
-      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">生成续期码</h3><div class="space-y-3"><select id="code-days" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><option value="7">7 天</option><option value="30" selected>30 天</option><option value="90">90 天</option></select><input type="number" id="code-count" value="1" min="1" max="100" placeholder="数量" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"></div><div class="flex space-x-3 mt-4"><button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">取消</button><button onclick="createCodes()" class="flex-1 py-2 bg-green-600 text-white rounded-lg">生成</button></div>';
+      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">生成会员卡</h3><div class="space-y-3"><select id="code-days" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg"><option value="7">7 天</option><option value="30" selected>30 天</option><option value="90">90 天</option></select><input type="number" id="code-count" value="1" min="1" max="100" placeholder="数量" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg"></div><div class="flex space-x-3 mt-4"><button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg">取消</button><button onclick="createCodes()" class="flex-1 py-2 bg-green-600 text-white rounded-lg">生成</button></div>';
       document.getElementById('modal').classList.remove('hidden');
     }
 
@@ -790,7 +790,7 @@
       try {
         const res = await fetch(API + '/admin/codes', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ days, count }) });
         const data = await res.json();
-        if (res.ok) { showToast('生成 ' + data.codes.length + ' 个续期码', 'success'); closeModal(); loadAdminCodes(); }
+        if (res.ok) { showToast('生成 ' + data.codes.length + ' 个会员卡', 'success'); closeModal(); loadAdminCodes(); }
         else { showToast(data.error || '失败', 'error'); }
       } catch (e) { showToast('失败', 'error'); }
     }
