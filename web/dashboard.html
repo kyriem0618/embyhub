@@ -123,6 +123,10 @@
         <i data-lucide="calendar-check" class="w-4 h-4"></i>
         <span>签到</span>
       </button>
+      <button onclick="showTab('shop')" id="tab-shop" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+        <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+        <span>商城</span>
+      </button>
       <button onclick="showTab('invite')" id="tab-invite" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
         <i data-lucide="users" class="w-4 h-4"></i>
         <span>邀请</span>
@@ -316,6 +320,33 @@
       </div>
     </div>
 
+    <!-- Shop Tab -->
+    <div id="panel-shop" class="tab-panel hidden">
+      <!-- 金币余额 -->
+      <div class="glass-card rounded-2xl p-4 mb-4 flex items-center justify-between animate-fade-in">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+            <i data-lucide="coins" class="w-5 h-5 text-yellow-600"></i>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500">我的金币</p>
+            <p id="coin-balance" class="text-xl font-bold text-yellow-600">0</p>
+          </div>
+        </div>
+        <button onclick="showCoinLogs()" class="text-sm text-blue-600 dark:text-blue-400">明细</button>
+      </div>
+      
+      <!-- 商品列表 -->
+      <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
+        <div class="p-4 border-b border-gray-200/50 dark:border-gray-700/50">
+          <h3 class="font-semibold text-gray-800 dark:text-white">商城</h3>
+        </div>
+        <div id="product-list" class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="text-center text-gray-500 py-8">加载中...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Ticket Tab -->
     <div id="panel-ticket" class="tab-panel hidden">
       <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
@@ -358,7 +389,7 @@
         </div>
 
         <!-- Quick Admin Actions -->
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <button onclick="showAdminUsers()" class="glass-card rounded-xl p-4 flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
             <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
               <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
@@ -375,6 +406,15 @@
             <div class="text-left">
               <p class="font-medium text-gray-800 dark:text-white">续期码</p>
               <p class="text-xs text-gray-500">生成/查看</p>
+            </div>
+          </button>
+          <button onclick="showAdminProducts()" class="glass-card rounded-xl p-4 flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+            <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+              <i data-lucide="shopping-bag" class="w-5 h-5 text-yellow-600"></i>
+            </div>
+            <div class="text-left">
+              <p class="font-medium text-gray-800 dark:text-white">商品管理</p>
+              <p class="text-xs text-gray-500">上架/下架</p>
             </div>
           </button>
         </div>
@@ -440,6 +480,7 @@
       lucide.createIcons();
       
       if (name === 'checkin') loadCheckinStatus();
+      if (name === 'shop') loadProducts();
       if (name === 'invite') loadInviteCodes();
       if (name === 'ticket') loadTickets();
       if (name === 'admin') loadAdminStats();
@@ -456,6 +497,9 @@
         
         document.getElementById('info-username').textContent = userData.username;
         document.getElementById('welcomeUser').textContent = userData.username;
+        
+        // 更新金币显示
+        document.getElementById('coin-balance').textContent = userData.coins || 0;
         
         // 显示管理员 Tab
         if (isAdmin) {
@@ -529,7 +573,7 @@
           statusEl.innerHTML = `
             <div class="text-center">
               <div class="text-green-600 dark:text-green-400 font-medium mb-2">✓ 今日已签到</div>
-              <p class="text-sm text-gray-500">累计签到 ${data.totalCheckins} 天，共获得 ${data.totalRewardDays} 天奖励</p>
+              <p class="text-sm text-gray-500">累计签到 ${data.totalCheckins} 天</p>
             </div>`;
           btn.disabled = true;
           btn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -537,7 +581,7 @@
           statusEl.innerHTML = `
             <div class="text-center">
               <div class="text-blue-600 dark:text-blue-400 font-medium mb-2">今日未签到</div>
-              <p class="text-sm text-gray-500">签到可获得 1-3 天随机奖励</p>
+              <p class="text-sm text-gray-500">签到可获得 10-30 金币奖励</p>
             </div>`;
           btn.disabled = false;
           btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -550,7 +594,7 @@
         const res = await fetch(`${API}/user/checkin`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
         const data = await res.json();
         if (res.ok) {
-          showToast(`签到成功！获得 ${data.rewardDays} 天奖励`, 'success');
+          showToast(`签到成功！获得 ${data.coinReward} 金币`, 'success');
           if (data.newLevel) {
             showToast(`恭喜升级到 Lv.${data.newLevel}！`, 'success');
           }
@@ -560,6 +604,106 @@
           showToast(data.error || '签到失败', 'error');
         }
       } catch (e) { showToast('签到失败', 'error'); }
+    }
+
+    // Shop
+    async function loadProducts() {
+      try {
+        document.getElementById('coin-balance').textContent = userData?.coins || 0;
+        
+        const res = await fetch(`${API}/shop/products`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const products = await res.json();
+        const container = document.getElementById('product-list');
+        
+        if (!products.length) {
+          container.innerHTML = '<div class="col-span-2 text-center text-gray-500 py-8">暂无商品</div>';
+          return;
+        }
+        
+        container.innerHTML = products.map(p => `
+          <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <p class="font-medium text-gray-800 dark:text-white">${p.name}</p>
+                ${p.description ? `<p class="text-xs text-gray-500 mt-1">${p.description}</p>` : ''}
+              </div>
+              ${p.days_reward > 0 ? `<span class="badge badge-success">+${p.days_reward}天</span>` : ''}
+            </div>
+            <div class="flex items-center justify-between mt-3">
+              <div class="flex items-center space-x-1">
+                <i data-lucide="coins" class="w-4 h-4 text-yellow-600"></i>
+                <span class="font-bold text-yellow-600">${p.price}</span>
+              </div>
+              <button onclick="purchaseProduct(${p.id}, '${p.name}', ${p.price})" 
+                class="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-medium rounded-lg">
+                兑换
+              </button>
+            </div>
+          </div>
+        `).join('');
+        
+        lucide.createIcons();
+      } catch (e) { console.error(e); }
+    }
+
+    async function purchaseProduct(productId, name, price) {
+      if ((userData?.coins || 0) < price) {
+        showToast('金币不足', 'warning');
+        return;
+      }
+      
+      if (!confirm(`确定花费 ${price} 金币兑换「${name}」？`)) return;
+      
+      try {
+        const res = await fetch(`${API}/shop/purchase/${productId}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          showToast(`兑换成功！${data.daysRewarded > 0 ? `获得 ${data.daysRewarded} 天有效期` : ''}`, 'success');
+          loadUserInfo();
+          loadProducts();
+        } else {
+          showToast(data.error || '兑换失败', 'error');
+        }
+      } catch (e) { showToast('兑换失败', 'error'); }
+    }
+
+    async function showCoinLogs() {
+      try {
+        const res = await fetch(`${API}/user/coin-logs`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const logs = await res.json();
+        
+        const typeNames = {
+          checkin: '签到奖励',
+          invite_reward: '邀请奖励',
+          redeem: '续期码',
+          admin_grant: '管理员发放',
+          admin_deduct: '管理员扣除',
+          purchase: '商城消费'
+        };
+        
+        document.getElementById('modal-content').innerHTML = `
+          <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">金币明细</h3>
+          <div class="max-h-80 overflow-y-auto space-y-2">
+            ${logs.length ? logs.map(l => `
+              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                <div>
+                  <p class="font-medium text-gray-800 dark:text-white">${typeNames[l.type] || l.type}</p>
+                  <p class="text-xs text-gray-500">${new Date(l.created_at).toLocaleString()}</p>
+                </div>
+                <span class="${l.amount > 0 ? 'text-green-600' : 'text-red-600'} font-bold">
+                  ${l.amount > 0 ? '+' : ''}${l.amount}
+                </span>
+              </div>
+            `).join('') : '<div class="text-center text-gray-500 py-4">暂无记录</div>'}
+          </div>
+          <button onclick="closeModal()" class="w-full mt-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">关闭</button>
+        `;
+        document.getElementById('modal').classList.remove('hidden');
+      } catch (e) { showToast('加载失败', 'error'); }
     }
 
     // Invite
@@ -742,6 +886,92 @@
 
     function showAdminCodes() {
       window.location.href = '/admin';
+    }
+
+    async function showAdminProducts() {
+      try {
+        const res = await fetch(`${API}/admin/products`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const products = await res.json();
+        
+        document.getElementById('modal-content').innerHTML = `
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">商品管理</h3>
+            <button onclick="showCreateProduct()" class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg">添加商品</button>
+          </div>
+          <div class="max-h-80 overflow-y-auto space-y-2">
+            ${products.length ? products.map(p => `
+              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                <div>
+                  <p class="font-medium text-gray-800 dark:text-white">${p.name}</p>
+                  <p class="text-xs text-gray-500">${p.price} 金币 · 库存: ${p.stock < 0 ? '无限' : p.stock}</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span class="badge ${p.is_active ? 'badge-success' : 'badge-danger'}">${p.is_active ? '上架' : '下架'}</span>
+                  <button onclick="toggleProduct(${p.id}, ${p.is_active})" class="text-blue-600 text-sm">${p.is_active ? '下架' : '上架'}</button>
+                </div>
+              </div>
+            `).join('') : '<div class="text-center text-gray-500 py-4">暂无商品</div>'}
+          </div>
+          <button onclick="closeModal()" class="w-full mt-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">关闭</button>
+        `;
+        document.getElementById('modal').classList.remove('hidden');
+      } catch (e) { showToast('加载失败', 'error'); }
+    }
+
+    function showCreateProduct() {
+      document.getElementById('modal-content').innerHTML = `
+        <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">添加商品</h3>
+        <div class="space-y-3">
+          <input type="text" id="product-name" placeholder="商品名称" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+          <input type="text" id="product-desc" placeholder="描述（可选）" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+          <div class="grid grid-cols-2 gap-3">
+            <input type="number" id="product-price" placeholder="价格（金币）" class="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+            <input type="number" id="product-stock" placeholder="库存（-1无限）" value="-1" class="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+          </div>
+          <input type="number" id="product-days" placeholder="奖励天数（0无）" value="0" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+        </div>
+        <div class="flex space-x-3 mt-4">
+          <button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">取消</button>
+          <button onclick="createProduct()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg">创建</button>
+        </div>
+      `;
+    }
+
+    async function createProduct() {
+      const name = document.getElementById('product-name').value.trim();
+      const description = document.getElementById('product-desc').value.trim();
+      const price = parseInt(document.getElementById('product-price').value) || 0;
+      const stock = parseInt(document.getElementById('product-stock').value) ?? -1;
+      const daysReward = parseInt(document.getElementById('product-days').value) || 0;
+      
+      if (!name) { showToast('请输入商品名称', 'warning'); return; }
+      
+      try {
+        const res = await fetch(`${API}/admin/products`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, description, price, stock, daysReward, isActive: true })
+        });
+        
+        if (res.ok) {
+          showToast('商品创建成功', 'success');
+          showAdminProducts();
+        } else {
+          const data = await res.json();
+          showToast(data.error || '创建失败', 'error');
+        }
+      } catch (e) { showToast('创建失败', 'error'); }
+    }
+
+    async function toggleProduct(id, isActive) {
+      try {
+        await fetch(`${API}/admin/products/${id}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isActive: !isActive })
+        });
+        showAdminProducts();
+      } catch (e) { showToast('操作失败', 'error'); }
     }
 
     function closeModal() {

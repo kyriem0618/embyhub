@@ -309,6 +309,7 @@ app.get('/api/user/me', authenticateToken, async (req, res) => {
       isActive: user.is_active,
       isAdmin: user.is_admin,
       balance: user.balance,
+      coins: user.coins || 0,
       level: levelInfo.user_level || 1,
       totalInvites: levelInfo.total_invites || 0,
       totalCheckins: levelInfo.total_checkins || 0
@@ -410,32 +411,25 @@ app.post('/api/user/checkin', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: '今日已签到' });
     }
     
-    // 计算奖励（随机1-3天）
-    const rewardDays = Math.floor(Math.random() * 3) + 1;
+    // 计算金币奖励（随机10-30金币）
+    const coinReward = Math.floor(Math.random() * 21) + 10;
     
     // 创建签到记录
-    const checkinId = await db.createCheckin(userId, rewardDays, req.ip);
+    const checkinId = await db.createCheckin(userId, coinReward, req.ip);
     if (!checkinId) {
       return res.status(400).json({ error: '签到失败' });
     }
     
-    // 更新用户有效期
-    const user = await db.getUserById(userId);
-    const currentExpiry = user.expires_at && new Date(user.expires_at) > new Date()
-      ? new Date(user.expires_at)
-      : new Date();
-    const newExpiry = new Date(currentExpiry);
-    newExpiry.setDate(newExpiry.getDate() + rewardDays);
-    
-    await db.updateUser(userId, { expiresAt: newExpiry });
+    // 添加金币
+    const newBalance = await db.addCoins(userId, coinReward, 'checkin', '每日签到奖励', checkinId);
     
     // 更新用户等级
     const newLevel = await db.updateUserLevel(userId);
     
     res.json({
       success: true,
-      rewardDays,
-      newExpiresAt: newExpiry.toISOString(),
+      coinReward,
+      newBalance,
       newLevel
     });
   } catch (error) {
@@ -524,6 +518,88 @@ app.post('/api/validate-invite-code', async (req, res) => {
     } else {
       res.json({ valid: false });
     }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ 商城 API ============
+
+// 获取商品列表
+app.get('/api/shop/products', authenticateToken, async (req, res) => {
+  try {
+    const products = await db.getActiveProducts();
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 购买商品
+app.post('/api/shop/purchase/:productId', authenticateToken, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const userId = req.user.id;
+    
+    const product = await db.getProductById(productId);
+    if (!product || !product.is_active) {
+      return res.status(400).json({ error: '商品不存在或已下架' });
+    }
+    
+    if (product.stock > 0 && product.stock < 1) {
+      return res.status(400).json({ error: '商品库存不足' });
+    }
+    
+    const user = await db.getUserById(userId);
+    if (!user || (user.coins || 0) < product.price) {
+      return res.status(400).json({ error: '金币不足' });
+    }
+    
+    const newBalance = await db.deductCoins(userId, product.price, 'purchase', `购买: ${product.name}`, productId);
+    
+    if (product.stock > 0) {
+      await db.decrementStock(productId);
+    }
+    
+    if (product.days_reward > 0) {
+      const currentUser = await db.getUserById(userId);
+      const currentExpiry = currentUser.expires_at && new Date(currentUser.expires_at) > new Date()
+        ? new Date(currentUser.expires_at)
+        : new Date();
+      const newExpiry = new Date(currentExpiry);
+      newExpiry.setDate(newExpiry.getDate() + product.days_reward);
+      await db.updateUser(userId, { expiresAt: newExpiry });
+    }
+    
+    await db.createPurchase({
+      userId,
+      productId,
+      productName: product.name,
+      coinsSpent: product.price,
+      daysRewarded: product.days_reward || 0
+    });
+    
+    res.json({ success: true, newBalance, daysRewarded: product.days_reward || 0 });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 购买记录
+app.get('/api/shop/purchases', authenticateToken, async (req, res) => {
+  try {
+    const purchases = await db.getUserPurchases(req.user.id, 50);
+    res.json(purchases);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 金币日志
+app.get('/api/user/coin-logs', authenticateToken, async (req, res) => {
+  try {
+    const logs = await db.getCoinLogs(req.user.id, 50);
+    res.json(logs);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -929,6 +1005,109 @@ app.post('/api/sessions/:id/stop', authenticateToken, requireAdmin, async (req, 
   try {
     await emby.stopSession(req.params.id);
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ 管理员 - 商品管理 ============
+
+app.get('/api/admin/products', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const products = await db.getAllProducts();
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/products', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { name, description, price, stock, category, icon, daysReward, isActive, sortOrder } = req.body;
+    
+    if (!name || !validator.isLength(name, { min: 1, max: 255 })) {
+      return res.status(400).json({ error: '商品名称格式错误' });
+    }
+    
+    if (price === undefined || price < 0) {
+      return res.status(400).json({ error: '价格必须 >= 0' });
+    }
+    
+    const product = await db.createProduct({
+      name,
+      description,
+      price,
+      stock: stock ?? -1,
+      category,
+      icon,
+      daysReward: daysReward || 0,
+      isActive: isActive !== false,
+      sortOrder: sortOrder || 0
+    });
+    
+    res.status(201).json(product);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/admin/products/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { name, description, price, stock, category, icon, daysReward, isActive, sortOrder } = req.body;
+    
+    const product = await db.updateProduct(req.params.id, {
+      name,
+      description,
+      price,
+      stock,
+      category,
+      icon,
+      daysReward,
+      isActive,
+      sortOrder
+    });
+    
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/admin/products/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    await db.deleteProduct(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/purchases', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const purchases = await db.getAllPurchases(100);
+    res.json(purchases);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 管理员 - 用户金币管理
+app.post('/api/admin/users/:id/coins', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { amount, description } = req.body;
+    
+    if (!amount || typeof amount !== 'number') {
+      return res.status(400).json({ error: '无效的数量' });
+    }
+    
+    let newBalance;
+    if (amount > 0) {
+      newBalance = await db.addCoins(req.params.id, amount, 'admin_grant', description || '管理员发放');
+    } else {
+      newBalance = await db.deductCoins(req.params.id, Math.abs(amount), 'admin_deduct', description || '管理员扣除');
+    }
+    
+    res.json({ success: true, newBalance });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

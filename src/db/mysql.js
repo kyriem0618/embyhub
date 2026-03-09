@@ -51,6 +51,7 @@ class MySQLAdapter  {
           expires_at DATETIME,
           invited_by INT,
           balance DECIMAL(10,2) DEFAULT 0.00,
+          coins INT DEFAULT 0,
           user_level INT DEFAULT 1,
           total_invites INT DEFAULT 0,
           total_checkins INT DEFAULT 0,
@@ -61,6 +62,61 @@ class MySQLAdapter  {
           INDEX idx_expires_at (expires_at),
           INDEX idx_user_level (user_level),
           FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      // 金币日志表
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS coin_logs (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL,
+          amount INT NOT NULL,
+          balance_after INT NOT NULL,
+          type ENUM('checkin', 'invite_reward', 'redeem', 'admin_grant', 'admin_deduct', 'purchase') NOT NULL,
+          description VARCHAR(255),
+          related_id INT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_user_id (user_id),
+          INDEX idx_type (type),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      // 商品表
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS products (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          price INT NOT NULL DEFAULT 0,
+          stock INT DEFAULT -1,
+          category VARCHAR(64) DEFAULT 'default',
+          icon VARCHAR(255),
+          days_reward INT DEFAULT 0,
+          is_active TINYINT DEFAULT 1,
+          sort_order INT DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_is_active (is_active),
+          INDEX idx_category (category)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      // 兑换记录表
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS purchases (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL,
+          product_id INT NOT NULL,
+          product_name VARCHAR(255),
+          coins_spent INT NOT NULL,
+          days_rewarded INT DEFAULT 0,
+          status ENUM('pending', 'completed', 'cancelled') DEFAULT 'completed',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_user_id (user_id),
+          INDEX idx_product_id (product_id),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
 
@@ -785,9 +841,197 @@ class MySQLAdapter  {
 
   async getUserLevel(userId) {
     const [rows] = await this.client.execute(`
-      SELECT user_level, total_invites, total_checkins FROM users WHERE id = ?
+      SELECT user_level, total_invites, total_checkins, coins FROM users WHERE id = ?
     `, [userId]);
-    return rows[0] || { user_level: 1, total_invites: 0, total_checkins: 0 };
+    return rows[0] || { user_level: 1, total_invites: 0, total_checkins: 0, coins: 0 };
+  }
+
+  // ============ 金币系统 ============
+
+  async addCoins(userId, amount, type, description = null, relatedId = null) {
+    const connection = await this.client.getConnection();
+    try {
+      await connection.beginTransaction();
+      
+      // 获取当前余额
+      const [users] = await connection.execute('SELECT coins FROM users WHERE id = ? FOR UPDATE', [userId]);
+      if (!users.length) throw new Error('User not found');
+      
+      const currentBalance = users[0].coins || 0;
+      const newBalance = currentBalance + amount;
+      
+      // 更新余额
+      await connection.execute('UPDATE users SET coins = ? WHERE id = ?', [newBalance, userId]);
+      
+      // 记录日志
+      await connection.execute(`
+        INSERT INTO coin_logs (user_id, amount, balance_after, type, description, related_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [userId, amount, newBalance, type, description, relatedId]);
+      
+      await connection.commit();
+      return newBalance;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async deductCoins(userId, amount, type, description = null, relatedId = null) {
+    const connection = await this.client.getConnection();
+    try {
+      await connection.beginTransaction();
+      
+      // 获取当前余额并锁定
+      const [users] = await connection.execute('SELECT coins FROM users WHERE id = ? FOR UPDATE', [userId]);
+      if (!users.length) throw new Error('User not found');
+      
+      const currentBalance = users[0].coins || 0;
+      if (currentBalance < amount) {
+        throw new Error('Insufficient coins');
+      }
+      
+      const newBalance = currentBalance - amount;
+      
+      // 更新余额
+      await connection.execute('UPDATE users SET coins = ? WHERE id = ?', [newBalance, userId]);
+      
+      // 记录日志
+      await connection.execute(`
+        INSERT INTO coin_logs (user_id, amount, balance_after, type, description, related_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [userId, -amount, newBalance, type, description, relatedId]);
+      
+      await connection.commit();
+      return newBalance;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async getCoinLogs(userId, limit = 50) {
+    const [rows] = await this.client.execute(`
+      SELECT * FROM coin_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
+    `, [userId, limit]);
+    return rows;
+  }
+
+  // ============ 商城系统 ============
+
+  async createProduct(data) {
+    const [result] = await this.client.execute(`
+      INSERT INTO products (name, description, price, stock, category, icon, days_reward, is_active, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      data.name,
+      data.description || null,
+      data.price || 0,
+      data.stock ?? -1,
+      data.category || 'default',
+      data.icon || null,
+      data.daysReward || 0,
+      data.isActive !== false ? 1 : 0,
+      data.sortOrder || 0
+    ]);
+    return this.getProductById(result.insertId);
+  }
+
+  async getProductById(id) {
+    const [rows] = await this.client.execute('SELECT * FROM products WHERE id = ?', [id]);
+    return rows[0];
+  }
+
+  async getActiveProducts() {
+    const [rows] = await this.client.execute(`
+      SELECT * FROM products 
+      WHERE is_active = 1 AND (stock = -1 OR stock > 0)
+      ORDER BY sort_order ASC, created_at DESC
+    `);
+    return rows;
+  }
+
+  async getAllProducts() {
+    const [rows] = await this.client.execute('SELECT * FROM products ORDER BY sort_order ASC, created_at DESC');
+    return rows;
+  }
+
+  async updateProduct(id, data) {
+    const fields = [];
+    const values = [];
+    
+    const mapping = {
+      name: 'name',
+      description: 'description',
+      price: 'price',
+      stock: 'stock',
+      category: 'category',
+      icon: 'icon',
+      daysReward: 'days_reward',
+      isActive: 'is_active',
+      sortOrder: 'sort_order'
+    };
+    
+    for (const [key, column] of Object.entries(mapping)) {
+      if (data[key] !== undefined) {
+        fields.push(`${column} = ?`);
+        values.push(data[key]);
+      }
+    }
+    
+    if (fields.length === 0) return this.getProductById(id);
+    
+    values.push(id);
+    await this.client.execute(`UPDATE products SET ${fields.join(', ')} WHERE id = ?`, values);
+    return this.getProductById(id);
+  }
+
+  async deleteProduct(id) {
+    await this.client.execute('DELETE FROM products WHERE id = ?', [id]);
+  }
+
+  async decrementStock(id) {
+    await this.client.execute(`
+      UPDATE products SET stock = stock - 1 WHERE id = ? AND stock > 0
+    `, [id]);
+  }
+
+  // ============ 兑换/购买 ============
+
+  async createPurchase(data) {
+    const [result] = await this.client.execute(`
+      INSERT INTO purchases (user_id, product_id, product_name, coins_spent, days_rewarded, status)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [
+      data.userId,
+      data.productId,
+      data.productName,
+      data.coinsSpent,
+      data.daysRewarded,
+      data.status || 'completed'
+    ]);
+    return result.insertId;
+  }
+
+  async getUserPurchases(userId, limit = 50) {
+    const [rows] = await this.client.execute(`
+      SELECT * FROM purchases WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
+    `, [userId, limit]);
+    return rows;
+  }
+
+  async getAllPurchases(limit = 100) {
+    const [rows] = await this.client.execute(`
+      SELECT p.*, u.username 
+      FROM purchases p 
+      LEFT JOIN users u ON p.user_id = u.id
+      ORDER BY p.created_at DESC LIMIT ?
+    `, [limit]);
+    return rows;
   }
 
   // ============ 连接池管理 ============
