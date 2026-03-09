@@ -5,205 +5,479 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EmbyHub - 我的账号</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+    
+    /* Gradient mesh background */
+    .bg-gradient-mesh {
+      background: 
+        radial-gradient(at 40% 20%, hsla(228, 86%, 65%, 0.15) 0px, transparent 50%),
+        radial-gradient(at 80% 0%, hsla(189, 100%, 56%, 0.1) 0px, transparent 50%),
+        radial-gradient(at 0% 50%, hsla(355, 85%, 63%, 0.1) 0px, transparent 50%),
+        radial-gradient(at 80% 50%, hsla(340, 100%, 76%, 0.1) 0px, transparent 50%);
+    }
+    
+    /* Glass card */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .dark .glass-card {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+    .animate-pulse-slow { animation: pulse-slow 2s ease-in-out infinite; }
+    
+    /* Skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s infinite;
+    }
+    .dark .skeleton {
+      background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+      background-size: 200% 100%;
+    }
+    @keyframes skeleton-loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    /* Badge */
+    .badge {
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-success { background: #dcfce7; color: #166534; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-danger { background: #fee2e2; color: #991b1b; }
+    .dark .badge-success { background: #14532d; color: #bbf7d0; }
+    .dark .badge-warning { background: #78350f; color: #fde68a; }
+    .dark .badge-danger { background: #7f1d1d; color: #fecaca; }
+    
+    /* Progress bar */
+    .progress-bar {
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      transition: width 0.5s ease;
+    }
+    
+    /* Toast */
+    @keyframes toast-in {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .toast-in { animation: toast-in 0.3s ease-out forwards; }
+  </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
-  <!-- 导航栏 -->
-  <nav class="bg-white dark:bg-gray-800 shadow-lg">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<body class="bg-gray-50 dark:bg-gray-950 min-h-screen bg-gradient-mesh transition-colors duration-300">
+  
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-[100] space-y-2"></div>
+  
+  <!-- Navigation -->
+  <nav class="sticky top-0 z-50 glass-card border-b border-white/10">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6">
       <div class="flex justify-between h-16">
         <div class="flex items-center space-x-3">
-          <span class="text-3xl">🎬</span>
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+            <i data-lucide="play-circle" class="w-5 h-5 text-white"></i>
+          </div>
           <div>
-            <h1 class="text-xl font-bold text-gray-800 dark:text-white">EmbyHub</h1>
+            <h1 class="text-lg font-bold text-gray-800 dark:text-white">EmbyHub</h1>
             <p class="text-xs text-gray-500 dark:text-gray-400">我的账号</p>
           </div>
         </div>
-        <div class="flex items-center space-x-4">
-          <button id="darkModeToggle" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">🌙</button>
-          <button onclick="logout()" class="text-red-600 hover:text-red-700 font-medium">退出登录</button>
+        <div class="flex items-center space-x-3">
+          <button onclick="toggleDarkMode()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+            <i data-lucide="moon" class="w-5 h-5 text-gray-600 dark:hidden"></i>
+            <i data-lucide="sun" class="w-5 h-5 text-gray-400 hidden dark:block"></i>
+          </button>
+          <button onclick="logout()" class="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">退出</span>
+          </button>
         </div>
       </div>
     </div>
   </nav>
 
-  <!-- 主内容 -->
-  <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- 账号信息 -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
-      <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6">📋 账号信息</h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-          <span class="text-gray-600 dark:text-gray-400 text-sm">用户名</span>
-          <p id="username" class="font-medium text-gray-800 dark:text-white text-lg">-</p>
-        </div>
-        
-        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-          <span class="text-gray-600 dark:text-gray-400 text-sm">Emby ID</span>
-          <p id="embyId" class="font-mono text-sm text-gray-800 dark:text-white">-</p>
-        </div>
-        
-        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-          <span class="text-gray-600 dark:text-gray-400 text-sm">账号状态</span>
-          <p id="accountStatus" class="font-medium">-</p>
-        </div>
-        
-        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-          <span class="text-gray-600 dark:text-gray-400 text-sm">到期时间</span>
-          <p id="expiresAt" class="font-medium text-gray-800 dark:text-white">-</p>
+  <!-- Main Content -->
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    
+    <!-- Account Info Card -->
+    <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
+      <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
+          <i data-lucide="user" class="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400"></i>
+          账号信息
+        </h2>
+      </div>
+      <div class="p-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">用户名</p>
+            <p id="info-username" class="font-semibold text-gray-800 dark:text-white">-</p>
+          </div>
+          <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Emby ID</p>
+            <p id="info-embyid" class="font-mono text-sm text-gray-800 dark:text-white truncate">-</p>
+          </div>
+          <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">账号状态</p>
+            <p id="info-status"><span class="skeleton h-6 w-16 rounded inline-block"></span></p>
+          </div>
+          <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">到期时间</p>
+            <p id="info-expires" class="font-semibold text-gray-800 dark:text-white">-</p>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 观影统计 -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-white">📊 观影统计</h2>
-        <button onclick="syncPlayback()" class="text-blue-600 hover:underline text-sm">🔄 同步记录</button>
-      </div>
-      
-      <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="p-4 bg-blue-50 dark:bg-blue-900 rounded-xl text-center">
-          <p class="text-3xl font-bold text-blue-600" id="totalPlays">0</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">播放次数</p>
-        </div>
-        <div class="p-4 bg-purple-50 dark:bg-purple-900 rounded-xl text-center">
-          <p class="text-3xl font-bold text-purple-600" id="totalHours">0</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">观看时长 (小时)</p>
-        </div>
-        <div class="p-4 bg-green-50 dark:bg-green-900 rounded-xl text-center">
-          <p class="text-3xl font-bold text-green-600" id="activeDays">0</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">活跃天数</p>
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-3 gap-4 animate-fade-in" style="animation-delay: 100ms">
+      <div class="glass-card rounded-2xl p-5">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+            <i data-lucide="play" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i>
+          </div>
+          <div>
+            <p class="text-2xl font-bold text-gray-800 dark:text-white" id="stat-plays">0</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">播放次数</p>
+          </div>
         </div>
       </div>
-      
-      <div id="playHistory" class="space-y-2">
-        <p class="text-gray-500 text-center py-4">点击"同步记录"加载观影历史</p>
-      </div>
-    </div>
-
-    <!-- 续期 -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
-      <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6">⏰ 账号续期</h2>
-      
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">续期码</label>
-          <input type="text" id="redeemCode" class="w-full px-4 py-3 border dark:border-gray-600 rounded-xl dark:bg-gray-700 dark:text-white" placeholder="EMBY-XXXXXXXX" />
+      <div class="glass-card rounded-2xl p-5">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+            <i data-lucide="clock" class="w-5 h-5 text-purple-600 dark:text-purple-400"></i>
+          </div>
+          <div>
+            <p class="text-2xl font-bold text-gray-800 dark:text-white" id="stat-hours">0</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">观看时长(时)</p>
+          </div>
         </div>
-        
-        <button onclick="redeemCode()" class="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-medium py-3 rounded-xl transition">
-          使用续期码
-        </button>
-        
-        <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
-          联系管理员获取续期码，每个续期码只能使用一次
-        </p>
+      </div>
+      <div class="glass-card rounded-2xl p-5">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <i data-lucide="calendar" class="w-5 h-5 text-green-600 dark:text-green-400"></i>
+          </div>
+          <div>
+            <p class="text-2xl font-bold text-gray-800 dark:text-white" id="stat-days">0</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">活跃天数</p>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 修改密码 -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-      <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6">🔐 修改密码</h2>
+    <!-- Extend Account -->
+    <div class="glass-card rounded-2xl overflow-hidden animate-fade-in" style="animation-delay: 150ms">
+      <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
+          <i data-lucide="calendar-plus" class="w-5 h-5 mr-2 text-green-600 dark:text-green-400"></i>
+          账号续期
+        </h2>
+      </div>
+      <div class="p-6">
+        <div class="flex flex-col sm:flex-row gap-4">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">续期码</label>
+            <div class="relative">
+              <i data-lucide="ticket" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+              <input type="text" id="redeemCode" placeholder="EMBY-XXXXXXXX"
+                class="w-full pl-12 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-xl focus:ring-2 focus:ring-green-500 dark:text-white transition">
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">联系管理员获取续期码</p>
+          </div>
+          <div class="flex items-end">
+            <button onclick="redeemCode()" class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white font-medium rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
+              <i data-lucide="check-circle" class="w-5 h-5 inline mr-1"></i>
+              使用续期码
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two Columns: History & Actions -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">原密码</label>
-          <input type="password" id="oldPassword" class="w-full px-4 py-3 border dark:border-gray-600 rounded-xl dark:bg-gray-700 dark:text-white" />
+      <!-- Play History -->
+      <div class="glass-card rounded-2xl overflow-hidden animate-fade-in" style="animation-delay: 200ms">
+        <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
+            <i data-lucide="history" class="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400"></i>
+            观影记录
+          </h2>
+          <button onclick="syncPlayback()" class="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+            <i data-lucide="refresh-cw" class="w-4 h-4 mr-1"></i>
+            同步
+          </button>
         </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">新密码</label>
-          <input type="password" id="newPassword" class="w-full px-4 py-3 border dark:border-gray-600 rounded-xl dark:bg-gray-700 dark:text-white" />
+        <div id="historyList" class="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+          <div class="p-4 space-y-3">
+            <div class="skeleton h-14 rounded-lg"></div>
+            <div class="skeleton h-14 rounded-lg"></div>
+            <div class="skeleton h-14 rounded-lg"></div>
+          </div>
         </div>
-        
-        <button onclick="changePassword()" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 rounded-xl transition">
-          修改密码
-        </button>
+      </div>
+
+      <!-- Settings -->
+      <div class="space-y-6">
+        <!-- Change Password -->
+        <div class="glass-card rounded-2xl overflow-hidden animate-fade-in" style="animation-delay: 250ms">
+          <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
+              <i data-lucide="key-round" class="w-5 h-5 mr-2 text-yellow-600 dark:text-yellow-400"></i>
+              修改密码
+            </h2>
+          </div>
+          <div class="p-6 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">原密码</label>
+              <input type="password" id="oldPassword" placeholder="输入原密码"
+                class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">新密码</label>
+              <input type="password" id="newPassword" placeholder="至少 6 位" minlength="6"
+                class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white">
+            </div>
+            <button onclick="changePassword()" class="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
+              <i data-lucide="save" class="w-5 h-5 inline mr-1"></i>
+              保存密码
+            </button>
+          </div>
+        </div>
+
+        <!-- Redemption Logs -->
+        <div class="glass-card rounded-2xl overflow-hidden animate-fade-in" style="animation-delay: 300ms">
+          <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
+              <i data-lucide="scroll-text" class="w-5 h-5 mr-2 text-teal-600 dark:text-teal-400"></i>
+              续期记录
+            </h2>
+          </div>
+          <div id="logList" class="max-h-48 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+            <div class="p-4 space-y-3">
+              <div class="skeleton h-12 rounded-lg"></div>
+              <div class="skeleton h-12 rounded-lg"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
 
-  <!-- 续期日志模态框 -->
-  <div id="logsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-xl font-bold text-gray-800 dark:text-white">续期记录</h3>
-        <button onclick="document.getElementById('logsModal').classList.add('hidden')" class="text-gray-500 hover:text-gray-700">✕</button>
-      </div>
-      <div id="redemptionLogs">
-        <p class="text-gray-500 text-center py-4">加载中...</p>
-      </div>
-    </div>
-  </div>
-
   <script>
     const API = '/api';
-    let currentUser = null;
-
-    // 验证登录
     const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = '/';
+    
+    // Check auth
+    if (!token) window.location.href = '/';
+    
+    lucide.createIcons();
+    initDarkMode();
+    loadUserInfo();
+    loadStats();
+    loadHistory();
+    loadLogs();
+
+    // ===== Toast =====
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      const icons = { success: 'check-circle', error: 'x-circle', warning: 'alert-triangle', info: 'info' };
+      const colors = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500', info: 'bg-blue-500' };
+      
+      toast.className = `toast-in flex items-center space-x-3 px-4 py-3 ${colors[type]} text-white rounded-xl shadow-lg`;
+      toast.innerHTML = `<i data-lucide="${icons[type]}" class="w-5 h-5"></i><span class="text-sm font-medium">${message}</span>`;
+      
+      container.appendChild(toast);
+      lucide.createIcons();
+      setTimeout(() => toast.remove(), 3000);
     }
 
-    // 加载用户信息
+    // ===== Dark Mode =====
+    function initDarkMode() {
+      if (localStorage.getItem('darkMode') === 'true') {
+        document.documentElement.classList.add('dark');
+      }
+    }
+    
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
+    }
+
+    // ===== Load Data =====
     async function loadUserInfo() {
       try {
-        const res = await fetch(`${API}/user/me`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch(`${API}/user/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const user = await res.json();
         
-        const data = await res.json();
+        if (!res.ok) {
+          logout();
+          return;
+        }
         
-        if (res.ok) {
-          currentUser = data;
-          document.getElementById('username').textContent = data.username;
-          document.getElementById('embyId').textContent = data.embyId || '未绑定';
+        document.getElementById('info-username').textContent = user.username;
+        document.getElementById('info-embyid').textContent = user.embyId || '未绑定';
+        
+        // Status
+        const statusEl = document.getElementById('info-status');
+        if (user.isActive) {
+          statusEl.innerHTML = '<span class="badge badge-success">正常</span>';
+        } else {
+          statusEl.innerHTML = '<span class="badge badge-danger">已禁用</span>';
+        }
+        
+        // Expires
+        const expiresEl = document.getElementById('info-expires');
+        if (user.expiresAt) {
+          const exp = new Date(user.expiresAt);
+          const now = new Date();
+          const days = Math.floor((exp - now) / 86400000);
           
-          // 账号状态
-          const statusEl = document.getElementById('accountStatus');
-          if (data.isActive) {
-            statusEl.className = 'px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm';
-            statusEl.textContent = '正常';
+          if (days < 0) {
+            expiresEl.innerHTML = `<span class="text-red-600">${exp.toLocaleDateString()} (已过期)</span>`;
+          } else if (days < 7) {
+            expiresEl.innerHTML = `<span class="text-orange-600">${exp.toLocaleDateString()} (剩${days}天)</span>`;
           } else {
-            statusEl.className = 'px-3 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-full text-sm';
-            statusEl.textContent = '已禁用';
-          }
-          
-          // 到期时间
-          const expiresEl = document.getElementById('expiresAt');
-          if (data.expiresAt) {
-            const expiresDate = new Date(data.expiresAt);
-            const now = new Date();
-            const daysLeft = Math.floor((expiresDate - now) / (1000 * 60 * 60 * 24));
-            
-            expiresEl.textContent = expiresDate.toLocaleString('zh-CN');
-            
-            if (daysLeft < 0) {
-              expiresEl.className = 'font-medium text-red-600';
-              expiresEl.textContent += ' (已过期)';
-            } else if (daysLeft < 7) {
-              expiresEl.className = 'font-medium text-orange-600';
-              expiresEl.textContent += ` (还剩${daysLeft}天)`;
-            } else {
-              expiresEl.className = 'font-medium text-green-600';
-              expiresEl.textContent += ` (还剩${daysLeft}天)`;
-            }
-          } else {
-            expiresEl.textContent = '永久';
+            expiresEl.innerHTML = `<span class="text-green-600">${exp.toLocaleDateString()} (剩${days}天)</span>`;
           }
         } else {
-          logout();
+          expiresEl.innerHTML = '<span class="text-green-600">永久有效</span>';
         }
-      } catch (error) {
-        console.error('Failed to load user info:', error);
+        
+      } catch (e) {
+        console.error('Load user info failed:', e);
       }
     }
 
-    // 观影记录
+    async function loadStats() {
+      try {
+        const res = await fetch(`${API}/user/play-history`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        
+        document.getElementById('stat-plays').textContent = data.stats?.totalPlays || 0;
+        document.getElementById('stat-hours').textContent = Math.round((data.stats?.totalDuration || 0) / 3600);
+        document.getElementById('stat-days').textContent = data.stats?.activeDays || 0;
+      } catch (e) {
+        console.error('Load stats failed:', e);
+      }
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch(`${API}/user/play-history`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        const history = data.history || [];
+        
+        const container = document.getElementById('historyList');
+        
+        if (history.length === 0) {
+          container.innerHTML = `
+            <div class="p-8 text-center text-gray-500">
+              <i data-lucide="film" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+              <p>暂无观影记录</p>
+              <p class="text-xs mt-1">点击"同步"从 Emby 获取</p>
+            </div>
+          `;
+          lucide.createIcons();
+          return;
+        }
+        
+        container.innerHTML = history.slice(0, 10).map(item => {
+          const icon = item.item_type === 'Movie' ? 'film' : item.item_type === 'Series' ? 'tv' : 'video';
+          const duration = Math.round(item.play_duration / 60);
+          
+          return `
+            <div class="flex items-center p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+              <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                <i data-lucide="${icon}" class="w-5 h-5 text-purple-600 dark:text-purple-400"></i>
+              </div>
+              <div class="ml-3 flex-1 min-w-0">
+                <p class="font-medium text-gray-800 dark:text-white truncate">${item.item_name}</p>
+                <p class="text-xs text-gray-500">${new Date(item.played_at).toLocaleDateString('zh-CN')}</p>
+              </div>
+              <span class="text-sm text-gray-500">${duration}分钟</span>
+            </div>
+          `;
+        }).join('');
+        
+        lucide.createIcons();
+      } catch (e) {
+        console.error('Load history failed:', e);
+      }
+    }
+
+    async function loadLogs() {
+      try {
+        const res = await fetch(`${API}/user/redemption-logs`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const logs = await res.json();
+        
+        const container = document.getElementById('logList');
+        
+        if (!logs || logs.length === 0) {
+          container.innerHTML = `
+            <div class="p-6 text-center text-gray-500">
+              <p class="text-sm">暂无续期记录</p>
+            </div>
+          `;
+          return;
+        }
+        
+        container.innerHTML = logs.map(log => `
+          <div class="flex items-center p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+            <div class="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <i data-lucide="plus" class="w-4 h-4 text-green-600 dark:text-green-400"></i>
+            </div>
+            <div class="ml-3 flex-1">
+              <p class="text-sm text-gray-800 dark:text-white">使用续期码</p>
+              <p class="text-xs text-gray-500">${new Date(log.created_at).toLocaleString('zh-CN')}</p>
+            </div>
+            <span class="badge badge-success">+${log.days_added}天</span>
+          </div>
+        `).join('');
+        
+        lucide.createIcons();
+      } catch (e) {
+        console.error('Load logs failed:', e);
+      }
+    }
+
+    // ===== Actions =====
     async function syncPlayback() {
       try {
+        showToast('正在同步...', 'info');
         const res = await fetch(`${API}/user/sync-playback`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -211,159 +485,89 @@
         const data = await res.json();
         
         if (res.ok) {
-          alert(`同步成功，共 ${data.count} 条记录`);
-          loadPlayHistory();
+          showToast(`同步成功，${data.count} 条记录`, 'success');
+          loadStats();
+          loadHistory();
         } else {
-          alert('同步失败：' + data.error);
+          showToast(data.error || '同步失败', 'error');
         }
-      } catch (error) {
-        alert('同步失败：' + error.message);
+      } catch (e) {
+        showToast('同步失败', 'error');
       }
     }
 
-    async function loadPlayHistory() {
-      try {
-        const res = await fetch(`${API}/user/play-history`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        
-        document.getElementById('totalPlays').textContent = data.stats?.totalPlays || 0;
-        document.getElementById('totalHours').textContent = Math.round((data.stats?.totalDuration || 0) / 3600);
-        document.getElementById('activeDays').textContent = data.stats?.activeDays || 0;
-        
-        const historyEl = document.getElementById('playHistory');
-        if (!data.history || data.history.length === 0) {
-          historyEl.innerHTML = '<p class="text-gray-500 text-center py-4">暂无观影记录，点击"同步记录"加载</p>';
-          return;
-        }
-        
-        historyEl.innerHTML = data.history.slice(0, 10).map(item => `
-          <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div class="flex items-center space-x-3">
-              <span class="text-2xl">${item.item_type === 'Movie' ? '🎬' : item.item_type === 'Series' ? '📺' : '📽️'}</span>
-              <div>
-                <p class="font-medium text-gray-800 dark:text-white">${item.item_name}</p>
-                <p class="text-xs text-gray-500">${new Date(item.played_at).toLocaleString('zh-CN')}</p>
-              </div>
-            </div>
-            <span class="text-sm text-gray-500">${Math.round(item.play_duration / 60)}分钟</span>
-          </div>
-        `).join('');
-      } catch (error) {
-        console.error('加载观影记录失败:', error);
-      }
-    }
-
-    async function loadRedemptionLogs() {
-      try {
-        const res = await fetch(`${API}/user/redemption-logs`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const logs = await res.json();
-        
-        const logsEl = document.getElementById('redemptionLogs');
-        if (!logs || logs.length === 0) {
-          logsEl.innerHTML = '<p class="text-gray-500 text-center py-4">暂无续期记录</p>';
-          return;
-        }
-        
-        logsEl.innerHTML = logs.map(log => `
-          <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg mb-2">
-            <div>
-              <p class="font-medium text-gray-800 dark:text-white">使用续期码 +${log.days_added}天</p>
-              <p class="text-xs text-gray-500">${new Date(log.created_at).toLocaleString('zh-CN')}</p>
-            </div>
-            <span class="text-green-600 font-medium">+${log.days_added}天</span>
-          </div>
-        `).join('');
-      } catch (error) {
-        console.error('加载续期日志失败:', error);
-      }
-    }
-
-    // 续期
     async function redeemCode() {
       const code = document.getElementById('redeemCode').value.trim();
-      if (!code) return alert('请输入续期码');
+      if (!code) {
+        showToast('请输入续期码', 'warning');
+        return;
+      }
       
       try {
         const res = await fetch(`${API}/user/redeem`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ code })
         });
-        
         const data = await res.json();
         
         if (res.ok && data.success) {
-          alert('续期成功！');
+          showToast('续期成功！', 'success');
           document.getElementById('redeemCode').value = '';
           loadUserInfo();
+          loadLogs();
         } else {
-          alert('续期失败：' + data.error);
+          showToast(data.error || '续期失败', 'error');
         }
-      } catch (error) {
-        alert('续期失败：' + error.message);
+      } catch (e) {
+        showToast('续期失败', 'error');
       }
     }
 
-    // 修改密码
     async function changePassword() {
-      const oldPassword = document.getElementById('oldPassword').value;
-      const newPassword = document.getElementById('newPassword').value;
+      const oldPwd = document.getElementById('oldPassword').value;
+      const newPwd = document.getElementById('newPassword').value;
       
-      if (!oldPassword || !newPassword) return alert('请填写完整');
-      if (newPassword.length < 6) return alert('密码至少 6 位');
+      if (!oldPwd || !newPwd) {
+        showToast('请填写完整', 'warning');
+        return;
+      }
       
-      if (!confirm('确定要修改密码吗？')) return;
+      if (newPwd.length < 6) {
+        showToast('新密码至少 6 位', 'warning');
+        return;
+      }
       
       try {
         const res = await fetch(`${API}/user/change-password`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ oldPassword, newPassword })
+          body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd })
         });
-        
         const data = await res.json();
         
         if (res.ok && data.success) {
-          alert('密码修改成功！请重新登录');
-          logout();
+          showToast('密码修改成功，请重新登录', 'success');
+          setTimeout(logout, 1500);
         } else {
-          alert('修改失败：' + data.error);
+          showToast(data.error || '修改失败', 'error');
         }
-      } catch (error) {
-        alert('修改失败：' + error.message);
+      } catch (e) {
+        showToast('修改失败', 'error');
       }
     }
 
-    // 退出登录
     function logout() {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/';
     }
-
-    // 深色模式
-    document.getElementById('darkModeToggle').addEventListener('click', () => {
-      document.body.classList.toggle('dark');
-      localStorage.setItem('darkMode', document.body.classList.contains('dark'));
-    });
-
-    if (localStorage.getItem('darkMode') === 'true') {
-      document.body.classList.add('dark');
-    }
-
-    loadUserInfo();
-    loadPlayHistory();
-    loadRedemptionLogs();
   </script>
 </body>
 </html>
