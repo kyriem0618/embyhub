@@ -297,6 +297,10 @@ app.get('/api/user/me', authenticateToken, async (req, res) => {
   try {
     const user = await db.getUserById(req.user.id);
     if (!user) return res.status(404).json({ error: '用户不存在' });
+    
+    // 获取等级信息
+    const levelInfo = await db.getUserLevel(req.user.id);
+    
     res.json({
       id: user.id,
       username: user.username,
@@ -304,7 +308,10 @@ app.get('/api/user/me', authenticateToken, async (req, res) => {
       expiresAt: user.expires_at,
       isActive: user.is_active,
       isAdmin: user.is_admin,
-      balance: user.balance
+      balance: user.balance,
+      level: levelInfo.user_level || 1,
+      totalInvites: levelInfo.total_invites || 0,
+      totalCheckins: levelInfo.total_checkins || 0
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -422,10 +429,14 @@ app.post('/api/user/checkin', authenticateToken, async (req, res) => {
     
     await db.updateUser(userId, { expiresAt: newExpiry });
     
+    // 更新用户等级
+    const newLevel = await db.updateUserLevel(userId);
+    
     res.json({
       success: true,
       rewardDays,
-      newExpiresAt: newExpiry.toISOString()
+      newExpiresAt: newExpiry.toISOString(),
+      newLevel
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

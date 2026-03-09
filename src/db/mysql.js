@@ -51,11 +51,15 @@ class MySQLAdapter  {
           expires_at DATETIME,
           invited_by INT,
           balance DECIMAL(10,2) DEFAULT 0.00,
+          user_level INT DEFAULT 1,
+          total_invites INT DEFAULT 0,
+          total_checkins INT DEFAULT 0,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           INDEX idx_emby_id (emby_id),
           INDEX idx_username (username),
           INDEX idx_expires_at (expires_at),
+          INDEX idx_user_level (user_level),
           FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
@@ -752,6 +756,38 @@ class MySQLAdapter  {
       expiredUsers: userStats[0].expired,
       openTickets: ticketStats[0].open_tickets
     };
+  }
+
+  // ============ 用户等级 ============
+  
+  async updateUserLevel(userId) {
+    // 获取用户的邀请数和签到数
+    const [inviteStats] = await this.client.execute(`
+      SELECT COUNT(*) as count FROM invitations WHERE inviter_id = ?
+    `, [userId]);
+    
+    const [checkinStats] = await this.client.execute(`
+      SELECT COUNT(*) as count FROM checkins WHERE user_id = ?
+    `, [userId]);
+    
+    const invites = inviteStats[0].count || 0;
+    const checkins = checkinStats[0].count || 0;
+    
+    // 计算等级：每 5 个邀请或 10 次签到升一级，最高 10 级
+    const level = Math.min(10, Math.floor(invites / 5) + Math.floor(checkins / 10) + 1);
+    
+    await this.client.execute(`
+      UPDATE users SET user_level = ?, total_invites = ?, total_checkins = ? WHERE id = ?
+    `, [level, invites, checkins, userId]);
+    
+    return level;
+  }
+
+  async getUserLevel(userId) {
+    const [rows] = await this.client.execute(`
+      SELECT user_level, total_invites, total_checkins FROM users WHERE id = ?
+    `, [userId]);
+    return rows[0] || { user_level: 1, total_invites: 0, total_checkins: 0 };
   }
 
   // ============ 连接池管理 ============

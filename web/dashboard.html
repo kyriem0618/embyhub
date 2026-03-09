@@ -39,12 +39,45 @@
     .badge-success { background: #dcfce7; color: #166534; }
     .badge-warning { background: #fef3c7; color: #92400e; }
     .badge-danger { background: #fee2e2; color: #991b1b; }
+    .badge-info { background: #dbeafe; color: #1e40af; }
     .dark .badge-success { background: #14532d; color: #bbf7d0; }
     .dark .badge-warning { background: #78350f; color: #fde68a; }
     .dark .badge-danger { background: #7f1d1d; color: #fecaca; }
+    .dark .badge-info { background: #1e3a8a; color: #bfdbfe; }
+    
+    /* 等级徽章 */
+    .level-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: #78350f;
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    }
+    .level-badge.level-1 { background: linear-gradient(135deg, #9ca3af, #6b7280); color: #fff; }
+    .level-badge.level-2 { background: linear-gradient(135deg, #a3e635, #65a30d); color: #fff; }
+    .level-badge.level-3 { background: linear-gradient(135deg, #22d3ee, #0891b2); color: #fff; }
+    .level-badge.level-4 { background: linear-gradient(135deg, #818cf8, #6366f1); color: #fff; }
+    .level-badge.level-5 { background: linear-gradient(135deg, #c084fc, #a855f7); color: #fff; }
+    .level-badge.level-6 { background: linear-gradient(135deg, #f472b6, #ec4899); color: #fff; }
+    .level-badge.level-7 { background: linear-gradient(135deg, #fb923c, #ea580c); color: #fff; }
+    .level-badge.level-8 { background: linear-gradient(135deg, #f87171, #dc2626); color: #fff; }
+    .level-badge.level-9 { background: linear-gradient(135deg, #fbbf24, #d97706); color: #78350f; }
+    .level-badge.level-10 { background: linear-gradient(135deg, #fcd34d, #b45309); color: #451a03; box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
     
     @keyframes toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     .toast-in { animation: toast-in 0.3s ease-out forwards; }
+    
+    /* Tab 样式 */
+    .tab-btn { transition: all 0.2s; }
+    .tab-btn.active { 
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+    }
+    .tab-btn.active i { color: white !important; }
   </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-950 min-h-screen transition-colors duration-300">
@@ -63,7 +96,8 @@
             <p class="text-xs text-gray-500 dark:text-gray-400">用户中心</p>
           </div>
         </div>
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-3">
+          <span id="userLevelBadge" class="level-badge level-1">Lv.1</span>
           <span id="welcomeUser" class="text-sm text-gray-600 dark:text-gray-400 hidden sm:block"></span>
           <button onclick="toggleDarkMode()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
             <i data-lucide="moon" class="w-5 h-5 text-gray-600 dark:hidden"></i>
@@ -79,230 +113,279 @@
   </nav>
 
   <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-    <!-- Quick Stats -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-      <div class="glass-card rounded-2xl p-4 animate-fade-in">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-            <i data-lucide="calendar" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i>
-          </div>
-          <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">剩余天数</p>
-            <p id="stat-days" class="text-xl font-bold text-gray-800 dark:text-white">-</p>
-          </div>
-        </div>
-      </div>
-      <div class="glass-card rounded-2xl p-4 animate-fade-in" style="animation-delay: 50ms">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-            <i data-lucide="gift" class="w-5 h-5 text-purple-600 dark:text-purple-400"></i>
-          </div>
-          <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">邀请人数</p>
-            <p id="stat-invites" class="text-xl font-bold text-gray-800 dark:text-white">0</p>
-          </div>
-        </div>
-      </div>
-      <div class="glass-card rounded-2xl p-4 animate-fade-in" style="animation-delay: 100ms">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <i data-lucide="check-circle" class="w-5 h-5 text-green-600 dark:text-green-400"></i>
-          </div>
-          <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">签到天数</p>
-            <p id="stat-checkins" class="text-xl font-bold text-gray-800 dark:text-white">0</p>
-          </div>
-        </div>
-      </div>
-      <div class="glass-card rounded-2xl p-4 animate-fade-in" style="animation-delay: 150ms">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-            <i data-lucide="play" class="w-5 h-5 text-orange-600 dark:text-orange-400"></i>
-          </div>
-          <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">播放次数</p>
-            <p id="stat-plays" class="text-xl font-bold text-gray-800 dark:text-white">0</p>
-          </div>
-        </div>
-      </div>
+    <!-- Tab Navigation -->
+    <div class="flex space-x-2 mb-6 overflow-x-auto pb-2">
+      <button onclick="showTab('home')" id="tab-home" class="tab-btn active flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium">
+        <i data-lucide="home" class="w-4 h-4"></i>
+        <span>首页</span>
+      </button>
+      <button onclick="showTab('checkin')" id="tab-checkin" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+        <i data-lucide="calendar-check" class="w-4 h-4"></i>
+        <span>签到</span>
+      </button>
+      <button onclick="showTab('invite')" id="tab-invite" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+        <i data-lucide="users" class="w-4 h-4"></i>
+        <span>邀请</span>
+      </button>
+      <button onclick="showTab('ticket')" id="tab-ticket" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+        <i data-lucide="message-square" class="w-4 h-4"></i>
+        <span>工单</span>
+      </button>
+      <button onclick="showTab('admin')" id="tab-admin" class="tab-btn hidden flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+        <i data-lucide="shield" class="w-4 h-4"></i>
+        <span>管理</span>
+      </button>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-      <button onclick="showCheckin()" class="glass-card rounded-xl p-4 flex flex-col items-center space-y-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition animate-fade-in" style="animation-delay: 200ms">
-        <div class="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-          <i data-lucide="calendar-check" class="w-6 h-6 text-green-600 dark:text-green-400"></i>
-        </div>
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">每日签到</span>
-      </button>
-      <button onclick="showInvitation()" class="glass-card rounded-xl p-4 flex flex-col items-center space-y-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition animate-fade-in" style="animation-delay: 250ms">
-        <div class="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-          <i data-lucide="users" class="w-6 h-6 text-purple-600 dark:text-purple-400"></i>
-        </div>
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">邀请码</span>
-      </button>
-      <button onclick="showTickets()" class="glass-card rounded-xl p-4 flex flex-col items-center space-y-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition animate-fade-in" style="animation-delay: 300ms">
-        <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-          <i data-lucide="message-square" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
-        </div>
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">工单</span>
-      </button>
-      <button onclick="showRedeem()" class="glass-card rounded-xl p-4 flex flex-col items-center space-y-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition animate-fade-in" style="animation-delay: 350ms">
-        <div class="w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
-          <i data-lucide="ticket" class="w-6 h-6 text-teal-600 dark:text-teal-400"></i>
-        </div>
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">续期</span>
-      </button>
-    </div>
-    
-    <!-- Admin Button (only for admins) -->
-    <div id="admin-section" class="hidden mb-6">
-      <a href="/admin" class="glass-card rounded-2xl p-6 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-800 transition animate-fade-in block">
-        <div class="flex items-center space-x-4">
-          <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-            <i data-lucide="shield" class="w-6 h-6 text-red-600 dark:text-red-400"></i>
-          </div>
-          <div>
-            <p class="font-semibold text-gray-800 dark:text-white">管理面板</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400">用户管理、续期码、会话监控</p>
+    <!-- Home Tab -->
+    <div id="panel-home" class="tab-panel">
+      <!-- Quick Stats -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <div class="glass-card rounded-2xl p-4 animate-fade-in">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <i data-lucide="calendar" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 dark:text-gray-400">剩余天数</p>
+              <p id="stat-days" class="text-xl font-bold text-gray-800 dark:text-white">-</p>
+            </div>
           </div>
         </div>
-        <i data-lucide="chevron-right" class="w-5 h-5 text-gray-400"></i>
-      </a>
-    </div>
+        <div class="glass-card rounded-2xl p-4 animate-fade-in" style="animation-delay: 50ms">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+              <i data-lucide="gift" class="w-5 h-5 text-purple-600 dark:text-purple-400"></i>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 dark:text-gray-400">邀请人数</p>
+              <p id="stat-invites" class="text-xl font-bold text-gray-800 dark:text-white">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="glass-card rounded-2xl p-4 animate-fade-in" style="animation-delay: 100ms">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <i data-lucide="check-circle" class="w-5 h-5 text-green-600 dark:text-green-400"></i>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 dark:text-gray-400">签到天数</p>
+              <p id="stat-checkins" class="text-xl font-bold text-gray-800 dark:text-white">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="glass-card rounded-2xl p-4 animate-fade-in" style="animation-delay: 150ms">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+              <i data-lucide="play" class="w-5 h-5 text-orange-600 dark:text-orange-400"></i>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 dark:text-gray-400">播放次数</p>
+              <p id="stat-plays" class="text-xl font-bold text-gray-800 dark:text-white">0</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <!-- Content Panels -->
-    <div id="panel-checkin" class="panel hidden">
-      <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
-        <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-          <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
-            <i data-lucide="calendar-check" class="w-5 h-5 mr-2 text-green-600 dark:text-green-400"></i>
-            每日签到
-          </h2>
-        </div>
-        <div class="p-6 text-center">
-          <div id="checkin-status" class="mb-4">
-            <div class="skeleton h-20 rounded-lg"></div>
+      <!-- Quick Actions -->
+      <div class="grid grid-cols-3 gap-3 mb-6">
+        <button onclick="showTab('checkin')" class="glass-card rounded-xl p-4 flex flex-col items-center space-y-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+          <div class="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <i data-lucide="calendar-check" class="w-6 h-6 text-green-600 dark:text-green-400"></i>
           </div>
-          <button id="checkin-btn" onclick="doCheckin()" class="px-8 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white font-medium rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
-            <i data-lucide="gift" class="w-5 h-5 inline mr-2"></i>
-            立即签到
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">签到</span>
+        </button>
+        <button onclick="showTab('invite')" class="glass-card rounded-xl p-4 flex flex-col items-center space-y-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+          <div class="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+            <i data-lucide="users" class="w-6 h-6 text-purple-600 dark:text-purple-400"></i>
+          </div>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">邀请码</span>
+        </button>
+        <button onclick="showRedeemModal()" class="glass-card rounded-xl p-4 flex flex-col items-center space-y-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+          <div class="w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+            <i data-lucide="ticket" class="w-6 h-6 text-teal-600 dark:text-teal-400"></i>
+          </div>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">续期</span>
+        </button>
+      </div>
+
+      <!-- Level Progress -->
+      <div class="glass-card rounded-2xl p-6 mb-6 animate-fade-in">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-gray-800 dark:text-white">等级进度</h3>
+          <span id="level-display" class="level-badge level-1">Lv.1 新手</span>
+        </div>
+        <div class="space-y-2">
+          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+            <span>下一级: Lv.<span id="next-level">2</span></span>
+            <span><span id="invite-progress">0</span>/5 邀请 · <span id="checkin-progress">0</span>/10 签到</span>
+          </div>
+          <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div id="level-progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all" style="width: 10%"></div>
+          </div>
+        </div>
+        <div class="mt-4 grid grid-cols-10 gap-1">
+          <div class="text-center">
+            <div class="w-6 h-6 mx-auto rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs text-white">1</div>
+          </div>
+          <div class="text-center">
+            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">2</div>
+          </div>
+          <div class="text-center">
+            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">3</div>
+          </div>
+          <div class="text-center">
+            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">4</div>
+          </div>
+          <div class="text-center">
+            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">5</div>
+          </div>
+          <div class="text-center">
+            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">6</div>
+          </div>
+          <div class="text-center">
+            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">7</div>
+          </div>
+          <div class="text-center">
+            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">8</div>
+          </div>
+          <div class="text-center">
+            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">9</div>
+          </div>
+          <div class="text-center">
+            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">10</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Account Info -->
+      <div class="glass-card rounded-2xl p-6 animate-fade-in">
+        <h3 class="font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+          <i data-lucide="user" class="w-5 h-5 mr-2 text-blue-600"></i>
+          账号信息
+        </h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+            <p class="text-xs text-gray-500 dark:text-gray-400">用户名</p>
+            <p id="info-username" class="font-semibold text-gray-800 dark:text-white">-</p>
+          </div>
+          <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+            <p class="text-xs text-gray-500 dark:text-gray-400">到期时间</p>
+            <p id="info-expires" class="font-semibold text-gray-800 dark:text-white">-</p>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button onclick="showPasswordModal()" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+            <i data-lucide="key-round" class="w-4 h-4 inline mr-1"></i>修改密码
           </button>
         </div>
       </div>
     </div>
 
-    <div id="panel-invitation" class="panel hidden">
+    <!-- Checkin Tab -->
+    <div id="panel-checkin" class="tab-panel hidden">
+      <div class="glass-card rounded-2xl p-6 animate-fade-in">
+        <h3 class="font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+          <i data-lucide="calendar-check" class="w-5 h-5 mr-2 text-green-600"></i>
+          每日签到
+        </h3>
+        <div id="checkin-status" class="mb-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+          <div class="skeleton h-16 rounded-lg"></div>
+        </div>
+        <button id="checkin-btn" onclick="doCheckin()" class="w-full py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white font-medium rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
+          <i data-lucide="gift" class="w-5 h-5 inline mr-2"></i>立即签到
+        </button>
+      </div>
+    </div>
+
+    <!-- Invite Tab -->
+    <div id="panel-invite" class="tab-panel hidden">
       <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
         <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
-          <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
-            <i data-lucide="users" class="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400"></i>
+          <h3 class="font-semibold text-gray-800 dark:text-white flex items-center">
+            <i data-lucide="users" class="w-5 h-5 mr-2 text-purple-600"></i>
             邀请码管理
-          </h2>
+          </h3>
           <button onclick="createInviteCode()" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium rounded-lg">
             <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>创建
           </button>
         </div>
-        <div id="invite-list" class="divide-y divide-gray-100 dark:divide-gray-800 max-h-80 overflow-y-auto">
-          <div class="p-4"><div class="skeleton h-12 rounded-lg"></div></div>
+        <div id="invite-list" class="divide-y divide-gray-100 dark:divide-gray-800 max-h-96 overflow-y-auto">
+          <div class="p-4 text-center text-gray-500">加载中...</div>
         </div>
       </div>
     </div>
 
-    <div id="panel-tickets" class="panel hidden">
+    <!-- Ticket Tab -->
+    <div id="panel-ticket" class="tab-panel hidden">
       <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
         <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
-          <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
-            <i data-lucide="message-square" class="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400"></i>
+          <h3 class="font-semibold text-gray-800 dark:text-white flex items-center">
+            <i data-lucide="message-square" class="w-5 h-5 mr-2 text-blue-600"></i>
             我的工单
-          </h2>
-          <button onclick="showNewTicket()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-medium rounded-lg">
+          </h3>
+          <button onclick="showNewTicketModal()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-medium rounded-lg">
             <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>新建
           </button>
         </div>
-        <div id="ticket-list" class="divide-y divide-gray-100 dark:divide-gray-800 max-h-80 overflow-y-auto">
+        <div id="ticket-list" class="divide-y divide-gray-100 dark:divide-gray-800 max-h-96 overflow-y-auto">
           <div class="p-4 text-center text-gray-500">暂无工单</div>
         </div>
       </div>
     </div>
 
-    <div id="panel-redeem" class="panel hidden">
-      <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
-        <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-          <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
-            <i data-lucide="ticket" class="w-5 h-5 mr-2 text-teal-600 dark:text-teal-400"></i>
-            使用续期码
-          </h2>
-        </div>
-        <div class="p-6">
-          <div class="flex space-x-3">
-            <input type="text" id="redeem-code" placeholder="输入续期码" class="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-xl focus:ring-2 focus:ring-teal-500 dark:text-white">
-            <button onclick="redeemCode()" class="px-6 py-3 bg-gradient-to-r from-teal-600 to-green-600 text-white font-medium rounded-xl">使用</button>
+    <!-- Admin Tab -->
+    <div id="panel-admin" class="tab-panel hidden">
+      <div class="space-y-4">
+        <!-- Admin Stats -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="glass-card rounded-xl p-4">
+            <p class="text-xs text-gray-500">总用户</p>
+            <p id="admin-total" class="text-xl font-bold text-gray-800 dark:text-white">-</p>
           </div>
-          <div id="redeem-history" class="mt-6">
-            <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">续期记录</h3>
-            <div id="redeem-log-list" class="divide-y divide-gray-100 dark:divide-gray-800 max-h-48 overflow-y-auto">
-              <div class="p-4"><div class="skeleton h-10 rounded-lg"></div></div>
+          <div class="glass-card rounded-xl p-4">
+            <p class="text-xs text-gray-500">活跃</p>
+            <p id="admin-active" class="text-xl font-bold text-green-600">-</p>
+          </div>
+          <div class="glass-card rounded-xl p-4">
+            <p class="text-xs text-gray-500">过期</p>
+            <p id="admin-expired" class="text-xl font-bold text-red-600">-</p>
+          </div>
+          <div class="glass-card rounded-xl p-4">
+            <p class="text-xs text-gray-500">会话</p>
+            <p id="admin-sessions" class="text-xl font-bold text-purple-600">-</p>
+          </div>
+        </div>
+
+        <!-- Quick Admin Actions -->
+        <div class="grid grid-cols-2 gap-4">
+          <button onclick="showAdminUsers()" class="glass-card rounded-xl p-4 flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+            <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
             </div>
-          </div>
+            <div class="text-left">
+              <p class="font-medium text-gray-800 dark:text-white">用户管理</p>
+              <p class="text-xs text-gray-500">创建/禁用/删除</p>
+            </div>
+          </button>
+          <button onclick="showAdminCodes()" class="glass-card rounded-xl p-4 flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+            <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <i data-lucide="ticket" class="w-5 h-5 text-green-600"></i>
+            </div>
+            <div class="text-left">
+              <p class="font-medium text-gray-800 dark:text-white">续期码</p>
+              <p class="text-xs text-gray-500">生成/查看</p>
+            </div>
+          </button>
         </div>
-      </div>
-    </div>
-
-    <!-- Account Info -->
-    <div class="glass-card rounded-2xl overflow-hidden mt-6 animate-fade-in" style="animation-delay: 400ms">
-      <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
-          <i data-lucide="user" class="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400"></i>
-          账号信息
-        </h2>
-      </div>
-      <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-          <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">用户名</p>
-          <p id="info-username" class="font-semibold text-gray-800 dark:text-white">-</p>
-        </div>
-        <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-          <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">到期时间</p>
-          <p id="info-expires" class="font-semibold text-gray-800 dark:text-white">-</p>
-        </div>
-        <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-          <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">账号状态</p>
-          <p id="info-status"><span class="skeleton h-6 w-16 rounded inline-block"></span></p>
-        </div>
-        <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-          <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Emby ID</p>
-          <p id="info-embyid" class="font-mono text-sm text-gray-800 dark:text-white">-</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Change Password -->
-    <div class="glass-card rounded-2xl overflow-hidden mt-6 animate-fade-in" style="animation-delay: 450ms">
-      <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
-          <i data-lucide="key-round" class="w-5 h-5 mr-2 text-yellow-600 dark:text-yellow-400"></i>
-          修改密码
-        </h2>
-      </div>
-      <div class="p-6 space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">原密码</label>
-          <input type="password" id="old-password" placeholder="输入原密码" class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-xl focus:ring-2 focus:ring-yellow-500 dark:text-white">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">新密码</label>
-          <input type="password" id="new-password" placeholder="至少 6 位" class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-xl focus:ring-2 focus:ring-yellow-500 dark:text-white">
-        </div>
-        <button onclick="changePassword()" class="w-full py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-medium rounded-xl">保存密码</button>
       </div>
     </div>
   </main>
 
-  <!-- Modal -->
+  <!-- Modals -->
   <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal()"></div>
-    <div class="relative w-full max-w-md glass-card rounded-2xl p-6 animate-fade-in">
+    <div class="relative w-full max-w-md glass-card rounded-2xl p-6 animate-fade-in max-h-[80vh] overflow-y-auto">
       <div id="modal-content"></div>
     </div>
   </div>
@@ -311,13 +394,12 @@
     const API = '/api';
     const token = localStorage.getItem('token');
     
-    if (!token) window.location.href = '/';
+    let userData = null;
+    let isAdmin = false;
     
     lucide.createIcons();
     initDarkMode();
     loadUserInfo();
-    loadStats();
-    loadCheckinStatus();
 
     function showToast(msg, type = 'info') {
       const colors = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500', info: 'bg-blue-500' };
@@ -342,34 +424,51 @@
       window.location.href = '/';
     }
 
-    // Panels
-    function hideAllPanels() {
-      document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
+    // Tabs
+    function showTab(name) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.classList.add('text-gray-600', 'dark:text-gray-400');
+      });
+      
+      document.getElementById(`panel-${name}`).classList.remove('hidden');
+      const btn = document.getElementById(`tab-${name}`);
+      btn.classList.add('active');
+      btn.classList.remove('text-gray-600', 'dark:text-gray-400');
+      
+      lucide.createIcons();
+      
+      if (name === 'checkin') loadCheckinStatus();
+      if (name === 'invite') loadInviteCodes();
+      if (name === 'ticket') loadTickets();
+      if (name === 'admin') loadAdminStats();
     }
 
-    function showCheckin() { hideAllPanels(); document.getElementById('panel-checkin').classList.remove('hidden'); }
-    function showInvitation() { hideAllPanels(); document.getElementById('panel-invitation').classList.remove('hidden'); loadInviteCodes(); }
-    function showTickets() { hideAllPanels(); document.getElementById('panel-tickets').classList.remove('hidden'); loadTickets(); }
-    function showRedeem() { hideAllPanels(); document.getElementById('panel-redeem').classList.remove('hidden'); loadRedeemLogs(); }
-
-    // Load Data
+    // Load User Info
     async function loadUserInfo() {
       try {
         const res = await fetch(`${API}/user/me`, { headers: { 'Authorization': `Bearer ${token}` } });
-        const user = await res.json();
+        userData = await res.json();
         if (!res.ok) { logout(); return; }
         
-        document.getElementById('info-username').textContent = user.username;
-        document.getElementById('info-embyid').textContent = user.embyId || '未绑定';
-        document.getElementById('welcomeUser').textContent = `欢迎, ${user.username}`;
+        isAdmin = userData.isAdmin;
         
-        // 显示管理员入口
-        if (user.isAdmin) {
-          document.getElementById('admin-section').classList.remove('hidden');
+        document.getElementById('info-username').textContent = userData.username;
+        document.getElementById('welcomeUser').textContent = userData.username;
+        
+        // 显示管理员 Tab
+        if (isAdmin) {
+          document.getElementById('tab-admin').classList.remove('hidden');
         }
         
-        if (user.expiresAt) {
-          const exp = new Date(user.expiresAt);
+        // 等级显示
+        const level = userData.level || 1;
+        updateLevelDisplay(level, userData.totalInvites || 0, userData.totalCheckins || 0);
+        
+        // 到期时间
+        if (userData.expiresAt) {
+          const exp = new Date(userData.expiresAt);
           const now = new Date();
           const days = Math.floor((exp - now) / 86400000);
           document.getElementById('info-expires').innerHTML = days < 0 
@@ -381,25 +480,37 @@
           document.getElementById('stat-days').textContent = '∞';
         }
         
-        document.getElementById('info-status').innerHTML = user.isActive 
-          ? '<span class="badge badge-success">正常</span>' 
-          : '<span class="badge badge-danger">已禁用</span>';
+        // 统计
+        document.getElementById('stat-invites').textContent = userData.totalInvites || 0;
+        document.getElementById('stat-checkins').textContent = userData.totalCheckins || 0;
+        
+        loadStats();
       } catch (e) { console.error(e); }
+    }
+
+    function updateLevelDisplay(level, invites, checkins) {
+      const levelNames = ['新手', '入门', '熟练', '精通', '专家', '大师', '宗师', '传说', '神话', '至尊'];
+      const badge = document.getElementById('userLevelBadge');
+      const display = document.getElementById('level-display');
+      
+      badge.textContent = `Lv.${level}`;
+      badge.className = `level-badge level-${level}`;
+      
+      display.textContent = `Lv.${level} ${levelNames[level - 1] || '至尊'}`;
+      display.className = `level-badge level-${level}`;
+      
+      // 进度
+      const nextLevel = Math.min(10, level + 1);
+      document.getElementById('next-level').textContent = nextLevel;
+      document.getElementById('invite-progress').textContent = invites % 5;
+      document.getElementById('checkin-progress').textContent = checkins % 10;
+      
+      const progress = Math.min(100, ((invites % 5) / 5 * 50) + ((checkins % 10) / 10 * 50));
+      document.getElementById('level-progress-bar').style.width = `${progress}%`;
     }
 
     async function loadStats() {
       try {
-        // Checkin stats
-        const checkinRes = await fetch(`${API}/user/checkin-status`, { headers: { 'Authorization': `Bearer ${token}` } });
-        const checkinData = await checkinRes.json();
-        document.getElementById('stat-checkins').textContent = checkinData.totalCheckins || 0;
-        
-        // Invitation stats
-        const inviteRes = await fetch(`${API}/user/invitation-stats`, { headers: { 'Authorization': `Bearer ${token}` } });
-        const inviteData = await inviteRes.json();
-        document.getElementById('stat-invites').textContent = inviteData.total_invites || 0;
-        
-        // Play stats
         const playRes = await fetch(`${API}/user/play-history`, { headers: { 'Authorization': `Bearer ${token}` } });
         const playData = await playRes.json();
         document.getElementById('stat-plays').textContent = playData.stats?.totalPlays || 0;
@@ -416,17 +527,17 @@
         
         if (data.hasCheckedInToday) {
           statusEl.innerHTML = `
-            <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-              <p class="text-green-600 dark:text-green-400 font-medium">✓ 今日已签到</p>
-              <p class="text-sm text-gray-500 mt-1">累计签到 ${data.totalCheckins} 天，共获得 ${data.totalRewardDays} 天奖励</p>
+            <div class="text-center">
+              <div class="text-green-600 dark:text-green-400 font-medium mb-2">✓ 今日已签到</div>
+              <p class="text-sm text-gray-500">累计签到 ${data.totalCheckins} 天，共获得 ${data.totalRewardDays} 天奖励</p>
             </div>`;
           btn.disabled = true;
           btn.classList.add('opacity-50', 'cursor-not-allowed');
         } else {
           statusEl.innerHTML = `
-            <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-              <p class="text-blue-600 dark:text-blue-400 font-medium">今日未签到</p>
-              <p class="text-sm text-gray-500 mt-1">签到可获得 1-3 天随机奖励</p>
+            <div class="text-center">
+              <div class="text-blue-600 dark:text-blue-400 font-medium mb-2">今日未签到</div>
+              <p class="text-sm text-gray-500">签到可获得 1-3 天随机奖励</p>
             </div>`;
           btn.disabled = false;
           btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -440,16 +551,18 @@
         const data = await res.json();
         if (res.ok) {
           showToast(`签到成功！获得 ${data.rewardDays} 天奖励`, 'success');
-          loadCheckinStatus();
+          if (data.newLevel) {
+            showToast(`恭喜升级到 Lv.${data.newLevel}！`, 'success');
+          }
           loadUserInfo();
-          loadStats();
+          loadCheckinStatus();
         } else {
           showToast(data.error || '签到失败', 'error');
         }
       } catch (e) { showToast('签到失败', 'error'); }
     }
 
-    // Invitation
+    // Invite
     async function loadInviteCodes() {
       try {
         const res = await fetch(`${API}/user/invitation-codes`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -512,7 +625,7 @@
       } catch (e) { console.error(e); }
     }
 
-    function showNewTicket() {
+    function showNewTicketModal() {
       document.getElementById('modal-content').innerHTML = `
         <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">新建工单</h3>
         <input type="text" id="ticket-subject" placeholder="标题" class="w-full px-4 py-2 mb-3 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
@@ -546,11 +659,16 @@
       } catch (e) { showToast('提交失败', 'error'); }
     }
 
-    function closeModal() {
-      document.getElementById('modal').classList.add('hidden');
+    // Redeem
+    function showRedeemModal() {
+      document.getElementById('modal-content').innerHTML = `
+        <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">使用续期码</h3>
+        <input type="text" id="redeem-code" placeholder="输入续期码" class="w-full px-4 py-3 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+        <button onclick="redeemCode()" class="w-full py-3 bg-gradient-to-r from-teal-600 to-green-600 text-white rounded-lg">使用</button>
+      `;
+      document.getElementById('modal').classList.remove('hidden');
     }
 
-    // Redeem
     async function redeemCode() {
       const code = document.getElementById('redeem-code').value.trim();
       if (!code) { showToast('请输入续期码', 'warning'); return; }
@@ -564,42 +682,31 @@
         const data = await res.json();
         if (res.ok) {
           showToast('续期成功', 'success');
-          document.getElementById('redeem-code').value = '';
+          closeModal();
           loadUserInfo();
-          loadRedeemLogs();
         } else {
           showToast(data.error || '续期失败', 'error');
         }
       } catch (e) { showToast('续期失败', 'error'); }
     }
 
-    async function loadRedeemLogs() {
-      try {
-        const res = await fetch(`${API}/user/redemption-logs`, { headers: { 'Authorization': `Bearer ${token}` } });
-        const logs = await res.json();
-        const container = document.getElementById('redeem-log-list');
-        
-        if (!logs.length) {
-          container.innerHTML = '<div class="p-4 text-center text-gray-500">暂无记录</div>';
-          return;
-        }
-        
-        container.innerHTML = logs.slice(0, 5).map(l => `
-          <div class="p-3 flex items-center justify-between text-sm">
-            <span class="font-mono text-blue-600">${l.code}</span>
-            <span class="text-green-600">+${l.days_added}天</span>
-          </div>
-        `).join('');
-      } catch (e) { console.error(e); }
+    // Password
+    function showPasswordModal() {
+      document.getElementById('modal-content').innerHTML = `
+        <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">修改密码</h3>
+        <input type="password" id="old-pwd" placeholder="原密码" class="w-full px-4 py-2 mb-3 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+        <input type="password" id="new-pwd" placeholder="新密码（至少6位）" class="w-full px-4 py-2 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+        <button onclick="changePassword()" class="w-full py-3 bg-yellow-600 text-white rounded-lg">保存</button>
+      `;
+      document.getElementById('modal').classList.remove('hidden');
     }
 
-    // Change Password
     async function changePassword() {
-      const oldPwd = document.getElementById('old-password').value;
-      const newPwd = document.getElementById('new-password').value;
+      const oldPwd = document.getElementById('old-pwd').value;
+      const newPwd = document.getElementById('new-pwd').value;
       
       if (!oldPwd || !newPwd) { showToast('请填写完整', 'warning'); return; }
-      if (newPwd.length < 6) { showToast('新密码至少 6 位', 'warning'); return; }
+      if (newPwd.length < 6) { showToast('新密码至少6位', 'warning'); return; }
       
       try {
         const res = await fetch(`${API}/user/change-password`, {
@@ -615,6 +722,30 @@
           showToast(data.error || '修改失败', 'error');
         }
       } catch (e) { showToast('修改失败', 'error'); }
+    }
+
+    // Admin
+    async function loadAdminStats() {
+      try {
+        const res = await fetch(`${API}/admin/stats`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        document.getElementById('admin-total').textContent = data.totalUsers || 0;
+        document.getElementById('admin-active').textContent = data.activeUsers || 0;
+        document.getElementById('admin-expired').textContent = data.expiredUsers || 0;
+        document.getElementById('admin-sessions').textContent = data.activeSessions || 0;
+      } catch (e) { console.error(e); }
+    }
+
+    function showAdminUsers() {
+      window.location.href = '/admin';
+    }
+
+    function showAdminCodes() {
+      window.location.href = '/admin';
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.add('hidden');
     }
   </script>
 </body>
