@@ -7,27 +7,18 @@ const MySQLAdapter = require('./mysql');
 let dbInstance = null;
 
 /**
- * 获取数据库实例
+ * 初始化数据库
  */
-function getDatabase() {
+async function initDatabase() {
   if (!dbInstance) {
     dbInstance = new MySQLAdapter();
-    dbInstance.connect();
+    await dbInstance.connect();
+    await dbInstance.initialize();
   }
   return dbInstance;
 }
 
-/**
- * 初始化数据库
- */
-async function initDatabase() {
-  const db = getDatabase();
-  await db.initialize();
-  return db;
-}
-
 module.exports = {
-  getDatabase,
   initDatabase,
   MySQLAdapter
 };
