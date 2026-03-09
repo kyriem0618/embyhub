@@ -147,10 +147,9 @@ class MySQLAdapter  {
           user_id INT NOT NULL,
           reward_days INT DEFAULT 0,
           ip_address VARCHAR(45),
-          checkin_date DATE GENERATED ALWAYS AS (DATE(created_at)) STORED,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          UNIQUE KEY uk_user_date (user_id, checkin_date),
           INDEX idx_user_id (user_id),
+          INDEX idx_created_at (created_at),
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
@@ -564,18 +563,21 @@ class MySQLAdapter  {
   // ============ 签到 ============
   
   async createCheckin(userId, rewardDays, ipAddress) {
-    try {
-      const [result] = await this.client.execute(`
-        INSERT INTO checkins (user_id, reward_days, ip_address)
-        VALUES (?, ?, ?)
-      `, [userId, rewardDays, ipAddress]);
-      return result.insertId;
-    } catch (error) {
-      if (error.code === 'ER_DUP_ENTRY') {
-        return null; // 今日已签到
-      }
-      throw error;
+    // 先检查今日是否已签到
+    const [existing] = await this.client.execute(`
+      SELECT id FROM checkins 
+      WHERE user_id = ? AND DATE(created_at) = CURDATE()
+    `, [userId]);
+    
+    if (existing.length > 0) {
+      return null; // 今日已签到
     }
+    
+    const [result] = await this.client.execute(`
+      INSERT INTO checkins (user_id, reward_days, ip_address)
+      VALUES (?, ?, ?)
+    `, [userId, rewardDays, ipAddress]);
+    return result.insertId;
   }
 
   async getUserCheckins(userId, limit = 30) {
