@@ -3,11 +3,10 @@
  */
 
 const mysql = require('mysql2/promise');
-const DatabaseAdapter = require('./adapter');
+// DatabaseAdapter removed
 
-class MySQLAdapter extends DatabaseAdapter {
+class MySQLAdapter  {
   constructor() {
-    super();
     this.config = {
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT) || 3306,
