@@ -1,5 +1,94 @@
 # EmbyHub 修改日志 (CHANGELOG)
 
+## [1.1.0] - 2026-03-09
+
+### ✨ 新增功能
+
+#### 邀请码系统
+- 🎁 用户可创建邀请码
+- 🏆 邀请奖励机制：被邀请人注册后，邀请人获得其有效期 5% 的奖励天数
+- 📊 邀请统计：查看邀请人数和累计奖励天数
+- 🔗 注册时可选填写邀请码
+
+#### Docker 部署
+- 🐳 Dockerfile 支持
+- 📦 docker-compose.yml 一键部署
+- 💾 数据持久化（SQLite volume）
+
+#### UI 优化
+- 🎨 Lucide 图标替代 emoji
+- 🪟 玻璃态卡片设计（Glassmorphism）
+- 🌈 动态渐变背景
+- 🔔 Toast 通知系统
+- ⏳ 骨架屏 Loading
+- 🌙 深色模式完善
+
+#### 管理功能增强
+- ✅ 批量操作（批量续期、批量禁用）
+- 🎫 邀请码管理（查看、禁用、删除）
+
+### 🗂️ 数据库变更
+
+#### 新增表
+- `invitation_codes` - 邀请码表
+- `invitations` - 邀请记录表
+
+#### 字段变更
+- `users` 表添加 `invited_by` 字段
+
+### 🔌 API 新增
+
+#### 邀请码相关
+- `POST /api/auth/register` - 支持邀请码参数
+- `GET /api/user/invitation-codes` - 获取用户的邀请码
+- `POST /api/user/invitation-codes` - 创建邀请码
+- `GET /api/user/invitation-stats` - 获取邀请统计
+- `GET /api/admin/invitation-codes` - 管理员获取所有邀请码
+- `PUT /api/admin/invitation-codes/:id` - 禁用邀请码
+- `DELETE /api/admin/invitation-codes/:id` - 删除邀请码
+- `POST /api/validate-invite-code` - 验证邀请码（公开）
+
+### 📁 文件变更
+
+```
+embyhub/
+├── Dockerfile           # 新增 - Docker 构建文件
+├── docker-compose.yml   # 新增 - Docker Compose 配置
+├── src/
+│   ├── index.js         # 更新 - 添加邀请码 API
+│   └── db/
+│       └── sqlite.js    # 更新 - 添加邀请码数据操作
+├── web/
+│   ├── login.html       # 更新 - 添加邀请码输入
+│   ├── admin.html       # 更新 - UI 全面升级
+│   └── dashboard.html   # 更新 - UI 升级
+└── CHANGELOG.md         # 更新 - 本文件
+```
+
+### 🚀 部署方式
+
+#### Docker 部署（推荐）
+```bash
+# 克隆项目
+git clone https://github.com/kyriem0618/embyhub.git
+cd embyhub
+
+# 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件
+
+# 启动
+docker-compose up -d
+```
+
+#### 手动部署
+```bash
+npm install
+npm start
+```
+
+---
+
 ## [1.0.0] - 2026-03-09
 
 ### ✨ 新增功能

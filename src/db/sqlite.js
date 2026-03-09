@@ -116,6 +116,42 @@ class SQLiteAdapter extends DatabaseAdapter {
       )
     `);
 
+    // 创建邀请码表
+    this.client.exec(`
+      CREATE TABLE IF NOT EXISTS invitation_codes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT UNIQUE NOT NULL,
+        user_id INTEGER NOT NULL,
+        max_uses INTEGER DEFAULT 0,
+        used_count INTEGER DEFAULT 0,
+        is_active INTEGER DEFAULT 1,
+        expires_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 创建邀请记录表
+    this.client.exec(`
+      CREATE TABLE IF NOT EXISTS invitations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        inviter_id INTEGER NOT NULL,
+        invitee_id INTEGER NOT NULL,
+        invite_code TEXT,
+        reward_days INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (inviter_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (invitee_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 为 users 表添加 invited_by 字段（如果不存在）
+    try {
+      this.client.exec(`ALTER TABLE users ADD COLUMN invited_by INTEGER REFERENCES users(id)`);
+    } catch (e) {
+      // 字段已存在，忽略错误
+    }
+
     // 创建索引
     this.client.exec(`
       CREATE INDEX IF NOT EXISTS idx_users_emby ON users(emby_id);
@@ -426,6 +462,180 @@ class SQLiteAdapter extends DatabaseAdapter {
     const searchQuery = `%${query}%`;
     return stmt.all(searchQuery, searchQuery);
   }
-}
 
-module.exports = SQLiteAdapter;
+  // ============ 邀请码操作 ============
+
+  createInvitationCode(data) {
+    const stmt = this.client.prepare(`
+      INSERT INTO invitation_codes (code, user_id, max_uses, used_count, is_active, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    const result = stmt.run(
+      data.code,
+      data.userId,
+      data.maxUses || 0,
+      0,
+      data.isActive !== false ? 1 : 0,
+      data.expiresAt
+    );
+    return this.getInvitationCodeById(result.lastInsertRowid);
+  }
+
+  getInvitationCodeById(id) {
+    const stmt = this.client.prepare('SELECT * FROM invitation_codes WHERE id = ?');
+    return stmt.get(id);
+  }
+
+  getInvitationCodeByCode(code) {
+    const stmt = this.client.prepare('SELECT * FROM invitation_codes WHERE code = ?');
+    return stmt.get(code);
+  }
+
+  getValidInvitationCode(code) {
+    const stmt = this.client.prepare(`
+      SELECT ic.*, u.username as owner_username 
+      FROM invitation_codes ic 
+      LEFT JOIN users u ON ic.user_id = u.id
+      WHERE ic.code = ? AND ic.is_active = 1
+    `);
+    const codeData = stmt.get(code);
+    if (!codeData) return null;
+    
+    // 检查是否过期
+    if (codeData.expires_at && new Date(codeData.expires_at) < new Date()) {
+      return null;
+    }
+    
+    // 检查使用次数限制（0表示无限制）
+    if (codeData.max_uses > 0 && codeData.used_count >= codeData.max_uses) {
+      return null;
+    }
+    
+    return codeData;
+  }
+
+  useInvitationCode(id) {
+    const stmt = this.client.prepare(`
+      UPDATE invitation_codes SET used_count = used_count + 1 WHERE id = ?
+    `);
+    return stmt.run(id);
+  }
+
+  getUserInvitationCodes(userId) {
+    const stmt = this.client.prepare(`
+      SELECT * FROM invitation_codes WHERE user_id = ? ORDER BY created_at DESC
+    `);
+    return stmt.all(userId);
+  }
+
+  getAllInvitationCodes() {
+    const stmt = this.client.prepare(`
+      SELECT ic.*, u.username as owner_username 
+      FROM invitation_codes ic 
+      LEFT JOIN users u ON ic.user_id = u.id
+      ORDER BY ic.created_at DESC
+    `);
+    return stmt.all();
+  }
+
+  updateInvitationCode(id, data) {
+    const fields = [];
+    const values = [];
+    
+    if (data.isActive !== undefined) {
+      fields.push('is_active = ?');
+      values.push(data.isActive ? 1 : 0);
+    }
+    if (data.maxUses !== undefined) {
+      fields.push('max_uses = ?');
+      values.push(data.maxUses);
+    }
+    if (data.expiresAt !== undefined) {
+      fields.push('expires_at = ?');
+      values.push(data.expiresAt);
+    }
+    
+    if (fields.length === 0) return this.getInvitationCodeById(id);
+    
+    values.push(id);
+    const stmt = this.client.prepare(`UPDATE invitation_codes SET ${fields.join(', ')} WHERE id = ?`);
+    stmt.run(...values);
+    
+    return this.getInvitationCodeById(id);
+  }
+
+  deleteInvitationCode(id) {
+    const stmt = this.client.prepare('DELETE FROM invitation_codes WHERE id = ?');
+    return stmt.run(id);
+  }
+
+  // ============ 邀请记录 ============
+
+  createInvitation(data) {
+    const stmt = this.client.prepare(`
+      INSERT INTO invitations (inviter_id, invitee_id, invite_code, reward_days)
+      VALUES (?, ?, ?, ?)
+    `);
+    const result = stmt.run(data.inviterId, data.inviteeId, data.inviteCode, data.rewardDays || 0);
+    return result.lastInsertRowid;
+  }
+
+  getUserInvitations(userId) {
+    const stmt = this.client.prepare(`
+      SELECT i.*, u.username as invitee_username 
+      FROM invitations i 
+      LEFT JOIN users u ON i.invitee_id = u.id
+      WHERE i.inviter_id = ? 
+      ORDER BY i.created_at DESC
+    `);
+    return stmt.all(userId);
+  }
+
+  getUserInvitationStats(userId) {
+    const stmt = this.client.prepare(`
+      SELECT 
+        COUNT(*) as total_invites,
+        SUM(reward_days) as total_reward_days
+      FROM invitations WHERE inviter_id = ?
+    `);
+    return stmt.get(userId);
+  }
+
+  // ============ 用户更新（支持 invited_by）============
+
+  updateUserWithInviter(id, userData) {
+    const fields = [];
+    const values = [];
+    
+    const mapping = {
+      username: 'username',
+      email: 'email',
+      passwordHash: 'password_hash',
+      isAdmin: 'is_admin',
+      isActive: 'is_active',
+      expiresAt: 'expires_at',
+      invitedBy: 'invited_by'
+    };
+    
+    for (const [key, column] of Object.entries(mapping)) {
+      if (userData[key] !== undefined) {
+        fields.push(`${column} = ?`);
+        if (key === 'isAdmin' || key === 'isActive') {
+          values.push(userData[key] ? 1 : 0);
+        } else {
+          values.push(userData[key]);
+        }
+      }
+    }
+    
+    if (fields.length === 0) return this.getUserById(id);
+    
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(id);
+    
+    const stmt = this.client.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`);
+    stmt.run(...values);
+    
+    return this.getUserById(id);
+  }
+}

@@ -195,7 +195,7 @@
         </div>
         
         <div>
-          <label class="block text-sm font-medium text-white/80 mb-1.5">续期码</label>
+          <label class="block text-sm font-medium text-white/80 mb-1.5">续期码 <span class="text-red-400">*</span></label>
           <div class="relative">
             <i data-lucide="ticket" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40"></i>
             <input type="text" id="regCode" required
@@ -203,6 +203,19 @@
               placeholder="EMBY-XXXXXXXX">
           </div>
           <p class="text-xs text-white/50 mt-1.5">联系管理员获取续期码</p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-white/80 mb-1.5">邀请码 <span class="text-white/40">(可选)</span></label>
+          <div class="relative">
+            <i data-lucide="gift" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40"></i>
+            <input type="text" id="regInviteCode"
+              class="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none input-glow transition"
+              placeholder="INV-XXXXXX（可选）"
+              oninput="validateInviteCode(this.value)">
+            <div id="inviteCodeStatus" class="absolute right-4 top-1/2 -translate-y-1/2"></div>
+          </div>
+          <p class="text-xs text-white/50 mt-1.5">使用邀请码注册，邀请人可获得您有效期 5% 的奖励</p>
         </div>
         
         <button type="submit" class="btn-shimmer w-full py-3 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]">
@@ -351,6 +364,7 @@
       const username = document.getElementById('regUsername').value.trim();
       const password = document.getElementById('regPassword').value;
       const code = document.getElementById('regCode').value.trim();
+      const inviteCode = document.getElementById('regInviteCode').value.trim();
       
       if (!username || !password || !code) {
         showToast('请填写完整信息', 'warning');
@@ -368,7 +382,7 @@
         const res = await fetch(`${API}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, code })
+          body: JSON.stringify({ username, password, code, inviteCode: inviteCode || undefined })
         });
         
         const data = await res.json();
@@ -376,7 +390,13 @@
         if (res.ok && data.token) {
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
-          showToast('注册成功', 'success');
+          
+          let message = '注册成功';
+          if (data.rewardInfo && data.rewardInfo.rewardDays > 0) {
+            message += `，邀请人获得 ${data.rewardInfo.rewardDays} 天奖励`;
+          }
+          showToast(message, 'success');
+          
           setTimeout(() => {
             window.location.href = '/dashboard';
           }, 500);
@@ -388,6 +408,34 @@
       }
       
       hideLoading();
+    }
+    
+    // Validate invite code
+    async function validateInviteCode(code) {
+      const statusEl = document.getElementById('inviteCodeStatus');
+      
+      if (!code || code.length < 5) {
+        statusEl.innerHTML = '';
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API}/validate-invite-code`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        
+        const data = await res.json();
+        
+        if (data.valid) {
+          statusEl.innerHTML = '<span class="text-green-400 text-xs">✓ 有效</span>';
+        } else {
+          statusEl.innerHTML = '<span class="text-red-400 text-xs">✗ 无效</span>';
+        }
+      } catch (e) {
+        statusEl.innerHTML = '';
+      }
     }
   </script>
 </body>
