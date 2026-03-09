@@ -244,29 +244,23 @@ app.post('/api/auth/register', async (req, res) => {
       newExpiresAt: expiresAt
     });
     
-    // 处理邀请奖励
-    let rewardDays = 0;
+    // 处理邀请奖励（改为金币）
+    let coinReward = 0;
     if (inviterId && invitationData) {
       await db.useInvitationCode(invitationData.id);
-      rewardDays = Math.floor(validCode.days * 0.05);
       
-      if (rewardDays > 0) {
-        const inviter = await db.getUserById(inviterId);
-        if (inviter) {
-          const inviterCurrentExpiry = inviter.expires_at && new Date(inviter.expires_at) > new Date()
-            ? new Date(inviter.expires_at)
-            : new Date();
-          const inviterNewExpiry = new Date(inviterCurrentExpiry);
-          inviterNewExpiry.setDate(inviterNewExpiry.getDate() + rewardDays);
-          await db.updateUser(inviterId, { expiresAt: inviterNewExpiry });
-        }
+      // 金币奖励：新用户有效天数 / 30（至少1）
+      coinReward = Math.max(1, Math.floor(validCode.days / 30));
+      
+      if (coinReward > 0) {
+        await db.addCoins(inviterId, coinReward, 'invite_reward', `邀请用户 ${username} 注册`, user.id);
       }
       
       await db.createInvitation({
         inviterId,
         inviteeId: user.id,
         inviteCode,
-        rewardDays
+        rewardDays: 0 // 不再奖励天数，改为金币
       });
     }
     
@@ -283,7 +277,7 @@ app.post('/api/auth/register', async (req, res) => {
       success: true,
       token,
       user: { id: user.id, username: user.username, isAdmin: false, embyId: user.emby_id },
-      rewardInfo: inviterId ? { inviterId, rewardDays } : null
+      inviteReward: inviterId ? { inviterId, coinReward } : null
     });
   } catch (error) {
     console.error('[Register] Error:', error);
@@ -1050,7 +1044,7 @@ app.get('/api/admin/products', authenticateToken, requireAdmin, async (req, res)
 
 app.post('/api/admin/products', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { name, description, price, stock, category, icon, daysReward, isActive, sortOrder } = req.body;
+    const { name, description, price, stock, category, icon, daysReward, isActive, sortOrder, productType, extraData } = req.body;
     
     if (!name || !validator.isLength(name, { min: 1, max: 255 })) {
       return res.status(400).json({ error: '商品名称格式错误' });
@@ -1065,12 +1059,17 @@ app.post('/api/admin/products', authenticateToken, requireAdmin, async (req, res
       description,
       price,
       stock: stock ?? -1,
-      category,
-      icon,
+      category: productType || category || 'default',
+      icon: icon || null,
       daysReward: daysReward || 0,
       isActive: isActive !== false,
       sortOrder: sortOrder || 0
     });
+    
+    // 如果是续期码类型，自动生成续期码
+    if (productType === 'redemption_code' && daysReward > 0) {
+      // 续期码会在用户购买时生成
+    }
     
     res.status(201).json(product);
   } catch (error) {

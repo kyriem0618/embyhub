@@ -1005,11 +1005,18 @@
           return;
         }
         
+        const typeNames = {
+          'days': '续期天数',
+          'tg_admin': 'TG群管',
+          'redemption_code': '续期码',
+          'default': '通用'
+        };
+        
         container.innerHTML = products.map(p => `
           <div class="p-3 flex items-center justify-between">
             <div>
               <p class="font-medium text-gray-800 dark:text-white">${p.name}</p>
-              <p class="text-xs text-gray-500">${p.price} 金币 · 库存: ${p.stock < 0 ? '无限' : p.stock} · 奖励: ${p.days_reward || 0}天</p>
+              <p class="text-xs text-gray-500">${p.price} 金币 · 库存: ${p.stock < 0 ? '无限' : p.stock} · 类型: ${typeNames[p.category] || '通用'}</p>
             </div>
             <div class="flex items-center space-x-2">
               <span class="badge ${p.is_active ? 'badge-success' : 'badge-danger'}">${p.is_active ? '上架' : '下架'}</span>
@@ -1040,11 +1047,33 @@
         <div class="space-y-3">
           <input type="text" id="product-name" placeholder="商品名称" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
           <input type="text" id="product-desc" placeholder="描述（可选）" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+          
+          <div>
+            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">商品类型</label>
+            <select id="product-type" onchange="updateProductTypeFields()" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+              <option value="days">续期天数</option>
+              <option value="tg_admin">Telegram 群管</option>
+              <option value="redemption_code">续期码</option>
+            </select>
+          </div>
+          
+          <div id="type-days-fields">
+            <input type="number" id="product-days" placeholder="奖励天数" value="7" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+          </div>
+          
+          <div id="type-tg-fields" class="hidden">
+            <input type="text" id="product-tg-link" placeholder="Telegram 群组链接" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white mb-2">
+            <input type="text" id="product-tg-userid" placeholder="用户 Telegram ID" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+          </div>
+          
+          <div id="type-code-fields" class="hidden">
+            <input type="number" id="product-code-days" placeholder="续期码天数" value="30" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
+          </div>
+          
           <div class="grid grid-cols-2 gap-3">
             <input type="number" id="product-price" placeholder="价格（金币）" class="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
             <input type="number" id="product-stock" placeholder="库存（-1无限）" value="-1" class="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
           </div>
-          <input type="number" id="product-days" placeholder="奖励天数（0无）" value="0" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
         </div>
         <div class="flex space-x-3 mt-4">
           <button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">取消</button>
@@ -1054,12 +1083,43 @@
       document.getElementById('modal').classList.remove('hidden');
     }
 
+    function updateProductTypeFields() {
+      const type = document.getElementById('product-type').value;
+      document.getElementById('type-days-fields').classList.add('hidden');
+      document.getElementById('type-tg-fields').classList.add('hidden');
+      document.getElementById('type-code-fields').classList.add('hidden');
+      
+      if (type === 'days') {
+        document.getElementById('type-days-fields').classList.remove('hidden');
+      } else if (type === 'tg_admin') {
+        document.getElementById('type-tg-fields').classList.remove('hidden');
+      } else if (type === 'redemption_code') {
+        document.getElementById('type-code-fields').classList.remove('hidden');
+      }
+    }
+
     async function createProduct() {
       const name = document.getElementById('product-name').value.trim();
       const description = document.getElementById('product-desc').value.trim();
       const price = parseInt(document.getElementById('product-price').value) || 0;
       const stock = parseInt(document.getElementById('product-stock').value);
-      const daysReward = parseInt(document.getElementById('product-days').value) || 0;
+      const productType = document.getElementById('product-type').value;
+      
+      let daysReward = 0;
+      let extraData = {};
+      
+      if (productType === 'days') {
+        daysReward = parseInt(document.getElementById('product-days').value) || 0;
+      } else if (productType === 'tg_admin') {
+        extraData.tgLink = document.getElementById('product-tg-link').value.trim();
+        extraData.tgUserId = document.getElementById('product-tg-userid').value.trim();
+        if (!extraData.tgLink) {
+          showToast('请输入 Telegram 群组链接', 'warning');
+          return;
+        }
+      } else if (productType === 'redemption_code') {
+        daysReward = parseInt(document.getElementById('product-code-days').value) || 30;
+      }
       
       if (!name) { showToast('请输入商品名称', 'warning'); return; }
       
@@ -1067,7 +1127,16 @@
         const res = await fetch(`${API}/admin/products`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, description, price, stock: isNaN(stock) ? -1 : stock, daysReward, isActive: true })
+          body: JSON.stringify({ 
+            name, 
+            description, 
+            price, 
+            stock: isNaN(stock) ? -1 : stock, 
+            daysReward, 
+            productType,
+            extraData,
+            isActive: true 
+          })
         });
         
         if (res.ok) {
