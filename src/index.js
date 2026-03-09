@@ -101,10 +101,13 @@ async function initializeApp() {
 }
 initializeApp();
 
-// ============ 页面路由 ============
+// 页面路由 ============
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../web/login.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, '../web/dashboard.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '../web/admin.html')));
+
+// 强制重定向到带版本号的页面
+app.get('/d', (req, res) => res.redirect('/dashboard?v=' + Date.now()));
 
 // ============ 认证 API ============
 

@@ -345,7 +345,7 @@
           localStorage.setItem('user', JSON.stringify(data.user));
           showToast('登录成功', 'success');
           setTimeout(() => {
-            window.location.href = data.user.isAdmin ? '/admin' : '/dashboard';
+            window.location.href = data.user.isAdmin ? '/admin' : '/d';
           }, 500);
         } else {
           showToast(data.error || '登录失败', 'error');
@@ -398,7 +398,7 @@
           showToast(message, 'success');
           
           setTimeout(() => {
-            window.location.href = '/dashboard';
+            window.location.href = '/d';
           }, 500);
         } else {
           showToast(data.error || '注册失败', 'error');
