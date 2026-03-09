@@ -353,14 +353,24 @@
 
     <!-- Rank Tab -->
     <div id="panel-rank" class="tab-panel hidden">
+      <!-- 排行榜类型切换 -->
+      <div class="flex space-x-2 mb-4">
+        <button onclick="loadLeaderboard('coins')" id="rank-btn-coins" class="flex-1 py-2 px-4 rounded-xl text-sm font-medium bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
+          <i data-lucide="coins" class="w-4 h-4 inline mr-1"></i>金币排行
+        </button>
+        <button onclick="loadLeaderboard('level')" id="rank-btn-level" class="flex-1 py-2 px-4 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">
+          <i data-lucide="award" class="w-4 h-4 inline mr-1"></i>等级排行
+        </button>
+        <button onclick="loadLeaderboard('checkins')" id="rank-btn-checkins" class="flex-1 py-2 px-4 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">
+          <i data-lucide="calendar-check" class="w-4 h-4 inline mr-1"></i>签到排行
+        </button>
+        <button onclick="loadLeaderboard('invites')" id="rank-btn-invites" class="flex-1 py-2 px-4 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">
+          <i data-lucide="users" class="w-4 h-4 inline mr-1"></i>邀请排行
+        </button>
+      </div>
+      
       <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
-        <div class="p-4 border-b border-gray-200/50 dark:border-gray-700/50">
-          <h3 class="font-semibold text-gray-800 dark:text-white flex items-center">
-            <i data-lucide="trophy" class="w-5 h-5 mr-2 text-yellow-600"></i>
-            金币排行榜
-          </h3>
-        </div>
-        <div id="rank-list" class="divide-y divide-gray-100 dark:divide-gray-800 max-h-[60vh] overflow-y-auto">
+        <div id="rank-list" class="divide-y divide-gray-100 dark:divide-gray-800 max-h-[55vh] overflow-y-auto">
           <div class="p-4 text-center text-gray-500">加载中...</div>
         </div>
       </div>
@@ -680,9 +690,24 @@
     }
 
     // Leaderboard
-    async function loadLeaderboard() {
+    let currentRankType = 'coins';
+    
+    async function loadLeaderboard(type = 'coins') {
+      currentRankType = type;
+      
+      // 更新按钮样式
+      const types = ['coins', 'level', 'checkins', 'invites'];
+      types.forEach(t => {
+        const btn = document.getElementById(`rank-btn-${t}`);
+        if (t === type) {
+          btn.className = 'flex-1 py-2 px-4 rounded-xl text-sm font-medium bg-gradient-to-r from-yellow-500 to-orange-500 text-white';
+        } else {
+          btn.className = 'flex-1 py-2 px-4 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
+        }
+      });
+      
       try {
-        const res = await fetch(`${API}/leaderboard`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API}/leaderboard?type=${type}`, { headers: { 'Authorization': `Bearer ${token}` } });
         const list = await res.json();
         const container = document.getElementById('rank-list');
         
@@ -692,6 +717,16 @@
         }
         
         const rankIcons = ['🥇', '🥈', '🥉'];
+        
+        // 根据类型决定显示的主要数据
+        const getMainValue = (u) => {
+          switch(type) {
+            case 'coins': return `<div class="flex items-center space-x-1 text-yellow-600 font-bold"><i data-lucide="coins" class="w-5 h-5"></i><span>${u.coins || 0}</span></div>`;
+            case 'level': return `<span class="level-badge level-${u.user_level || 1}">Lv.${u.user_level || 1}</span>`;
+            case 'checkins': return `<div class="text-green-600 font-bold">${u.total_checkins || 0} 天</div>`;
+            case 'invites': return `<div class="text-purple-600 font-bold">${u.total_invites || 0} 人</div>`;
+          }
+        };
         
         container.innerHTML = list.map((u, i) => {
           const rank = i + 1;
@@ -705,14 +740,15 @@
                 <div class="flex items-center space-x-2">
                   <p class="font-medium text-gray-800 dark:text-white">${u.username}</p>
                   ${isMe ? '<span class="text-xs text-blue-600">(我)</span>' : ''}
-                  <span class="level-badge level-${u.user_level || 1} text-xs">Lv.${u.user_level || 1}</span>
                 </div>
-                <p class="text-xs text-gray-500">签到 ${u.total_checkins || 0} 天 · 邀请 ${u.total_invites || 0} 人</p>
+                <div class="flex items-center space-x-3 text-xs text-gray-500 mt-1">
+                  <span class="level-badge level-${u.user_level || 1} text-xs">Lv.${u.user_level || 1}</span>
+                  <span>💰 ${u.coins || 0}</span>
+                  <span>📅 ${u.total_checkins || 0}天</span>
+                  <span>👥 ${u.total_invites || 0}人</span>
+                </div>
               </div>
-              <div class="flex items-center space-x-1 text-yellow-600 font-bold">
-                <i data-lucide="coins" class="w-5 h-5"></i>
-                <span>${u.coins || 0}</span>
-              </div>
+              <div>${getMainValue(u)}</div>
             </div>
           `;
         }).join('');
