@@ -639,3 +639,7 @@ class SQLiteAdapter extends DatabaseAdapter {
     return this.getUserById(id);
   }
 }
+
+module.exports = SQLiteAdapter;
+
+module.exports = SQLiteAdapter;
