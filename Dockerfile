@@ -1,9 +1,9 @@
-# EmbyHub Dockerfile
+# EmbyHub Dockerfile - MySQL Version
 FROM node:18-alpine
 
 WORKDIR /app
 
-RUN apk add --no-cache python3 make g++ sqlite-dev
+RUN apk add --no-cache python3 make g++
 
 COPY package*.json ./
 RUN npm ci --only=production
@@ -11,9 +11,7 @@ RUN npm ci --only=production
 COPY src/ ./src/
 COPY web/ ./web/
 
-RUN mkdir -p /app/data
-
-ENV NODE_ENV=production PORT=3000 DB_PATH=/app/data/embyhub.db
+ENV NODE_ENV=production PORT=3000
 
 EXPOSE 3000
 

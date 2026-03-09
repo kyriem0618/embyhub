@@ -1,9 +1,8 @@
 /**
- * 数据库抽象层
- * 支持 SQLite (开发) 和 MySQL (生产)
+ * 数据库抽象层 - MySQL Only
  */
 
-const DatabaseAdapter = require('./adapter');
+const MySQLAdapter = require('./mysql');
 
 let dbInstance = null;
 
@@ -12,17 +11,9 @@ let dbInstance = null;
  */
 function getDatabase() {
   if (!dbInstance) {
-    const dbType = process.env.DB_TYPE || 'sqlite';
-    
-    if (dbType === 'mysql') {
-      dbInstance = new (require('./mysql'))();
-    } else {
-      dbInstance = new (require('./sqlite'))();
-    }
-    
+    dbInstance = new MySQLAdapter();
     dbInstance.connect();
   }
-  
   return dbInstance;
 }
 
@@ -38,5 +29,5 @@ async function initDatabase() {
 module.exports = {
   getDatabase,
   initDatabase,
-  DatabaseAdapter
+  MySQLAdapter
 };

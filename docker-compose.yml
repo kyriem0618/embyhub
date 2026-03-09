@@ -12,16 +12,40 @@ services:
       - PORT=3000
       - EMBY_URL=${EMBY_URL}
       - EMBY_API_KEY=${EMBY_API_KEY}
-      - JWT_SECRET=${JWT_SECRET:-change-this-secret-in-production}
-      - DB_PATH=/app/data/embyhub.db
+      - JWT_SECRET=${JWT_SECRET}
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=embyhub
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=embyhub
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - embyhub-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: embyhub-mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=embyhub
+      - MYSQL_USER=embyhub
+      - MYSQL_PASSWORD=${DB_PASSWORD}
     volumes:
-      - embyhub_data:/app/data
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/emby/test"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - embyhub-network
+
+networks:
+  embyhub-network:
+    driver: bridge
 
 volumes:
-  embyhub_data:
+  mysql_data:

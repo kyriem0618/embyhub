@@ -1,5 +1,83 @@
 # EmbyHub 修改日志 (CHANGELOG)
 
+## [1.2.0] - 2026-03-09
+
+### ✨ 新增功能
+
+#### 数据库重构
+- 🗄️ **移除 SQLite，全面切换到 MySQL**
+- 📊 完善的 MySQL 连接池管理
+- 🔒 事务支持和外键约束
+
+#### 签到系统
+- 📅 每日签到功能
+- 🎁 随机奖励 1-3 天有效期
+- 📊 签到统计和历史记录
+
+#### 工单系统
+- 🎫 用户可提交工单
+- 💬 工单回复功能
+- 📋 管理员工单管理（状态、优先级）
+
+#### 安全性增强
+- 🛡️ **Helmet** - HTTP 安全头
+- ⏱️ **Rate Limiting** - 登录 15分钟10次，API 1分钟100次
+- 🔍 **输入验证** - validator.js 验证所有输入
+- 🧹 **XSS 过滤** - xss.js 清理用户输入
+- 🔐 **密码加密** - bcrypt 12轮加密
+
+#### 其他改进
+- 📝 操作日志记录
+- 🔄 默认管理员自动创建
+- ⚠️ 完善的错误处理
+
+### 🗂️ 数据库变更
+
+#### 新增表
+- `checkins` - 签到记录表
+- `tickets` - 工单表
+- `ticket_replies` - 工单回复表
+- `orders` - 订单表
+
+#### 字段变更
+- `users` 表添加 `balance`、`invited_by` 字段
+- `redemption_codes` 表添加 `price` 字段
+- `logs` 表添加 `user_agent` 字段
+
+### 📁 文件变更
+
+```
+embyhub/
+├── src/
+│   ├── index.js         # 重构 - 添加安全中间件、签到、工单
+│   └── db/
+│       ├── index.js     # 更新 - MySQL Only
+│       ├── mysql.js     # 完善 - 完整功能
+│       └── sqlite.js    # 删除
+├── Dockerfile           # 更新 - MySQL 版本
+├── docker-compose.yml   # 更新 - 添加 MySQL 服务
+├── .env.example         # 更新 - MySQL 配置
+├── package.json         # 更新 - 移除 SQLite，添加安全依赖
+└── CHANGELOG.md         # 更新 - 本文件
+```
+
+### 🚀 部署方式
+
+```bash
+# 克隆项目
+git clone https://github.com/kyriem0618/embyhub.git
+cd embyhub
+
+# 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，配置 MySQL 和 Emby 信息
+
+# Docker 部署
+docker-compose up -d
+```
+
+---
+
 ## [1.1.0] - 2026-03-09
 
 ### ✨ 新增功能

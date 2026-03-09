@@ -1,6 +1,6 @@
 {
   "name": "embyhub",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Web-based Emby user management system with Telegram Bot",
   "main": "src/index.js",
   "scripts": {
@@ -10,11 +10,7 @@
     "dev": "nodemon src/index.js",
     "dev:bot": "nodemon src/bot/index.js",
     "test": "jest",
-    "lint": "eslint src/",
-    "build": "npm run build:api && npm run build:web",
-    "build:api": "echo 'API build complete'",
-    "build:web": "echo 'Web build complete'",
-    "db:migrate": "node src/db/migrate.js"
+    "lint": "eslint src/"
   },
   "keywords": [
     "emby",
@@ -22,7 +18,8 @@
     "user-management",
     "telegram-bot",
     "web-interface",
-    "invitation-system"
+    "invitation-system",
+    "mysql"
   ],
   "author": "KyrieM",
   "license": "Apache-2.0",
@@ -30,13 +27,16 @@
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "better-sqlite3": "^9.2.2",
     "mysql2": "^3.6.5",
     "jsonwebtoken": "^9.0.2",
     "bcryptjs": "^2.4.3",
     "axios": "^1.6.2",
     "node-telegram-bot-api": "^0.64.0",
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "xss": "^1.0.14",
+    "validator": "^13.11.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
