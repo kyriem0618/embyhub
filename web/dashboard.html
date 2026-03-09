@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EmbyHub - 用户中心</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>EmbyHub v1.3.0 - 用户中心</title>
   <script>if (!localStorage.getItem('token')) window.location.href = '/';</script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
@@ -27,14 +30,6 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
     
-    .skeleton {
-      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
-      background-size: 200% 100%;
-      animation: skeleton-loading 1.5s infinite;
-    }
-    .dark .skeleton { background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%); background-size: 200% 100%; }
-    @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    
     .badge { padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
     .badge-success { background: #dcfce7; color: #166534; }
     .badge-warning { background: #fef3c7; color: #92400e; }
@@ -45,16 +40,10 @@
     .dark .badge-danger { background: #7f1d1d; color: #fecaca; }
     .dark .badge-info { background: #1e3a8a; color: #bfdbfe; }
     
-    /* 等级徽章 */
     .level-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 12px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 700;
-      background: linear-gradient(135deg, #fbbf24, #f59e0b);
-      color: #78350f;
+      display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px;
+      font-size: 12px; font-weight: 700;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #78350f;
       box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
     }
     .level-badge.level-1 { background: linear-gradient(135deg, #9ca3af, #6b7280); color: #fff; }
@@ -71,19 +60,20 @@
     @keyframes toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     .toast-in { animation: toast-in 0.3s ease-out forwards; }
     
-    /* Tab 样式 */
     .tab-btn { transition: all 0.2s; }
     .tab-btn.active { 
       background: linear-gradient(135deg, #3b82f6, #8b5cf6);
       color: white;
     }
     .tab-btn.active i { color: white !important; }
+    
+    .admin-sub-tab { border-bottom: 2px solid transparent; }
+    .admin-sub-tab.active { border-bottom-color: #3b82f6; color: #3b82f6; }
   </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-950 min-h-screen transition-colors duration-300">
   <div id="toastContainer" class="fixed top-4 right-4 z-[100] space-y-2"></div>
   
-  <!-- Navigation -->
   <nav class="sticky top-0 z-50 glass-card border-b border-white/10">
     <div class="max-w-6xl mx-auto px-4 sm:px-6">
       <div class="flex justify-between h-16">
@@ -116,38 +106,30 @@
     <!-- Tab Navigation -->
     <div class="flex space-x-2 mb-6 overflow-x-auto pb-2">
       <button onclick="showTab('home')" id="tab-home" class="tab-btn active flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium">
-        <i data-lucide="home" class="w-4 h-4"></i>
-        <span>首页</span>
+        <i data-lucide="home" class="w-4 h-4"></i><span>首页</span>
       </button>
       <button onclick="showTab('checkin')" id="tab-checkin" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
-        <i data-lucide="calendar-check" class="w-4 h-4"></i>
-        <span>签到</span>
+        <i data-lucide="calendar-check" class="w-4 h-4"></i><span>签到</span>
       </button>
       <button onclick="showTab('shop')" id="tab-shop" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
-        <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-        <span>商城</span>
+        <i data-lucide="shopping-bag" class="w-4 h-4"></i><span>商城</span>
       </button>
       <button onclick="showTab('rank')" id="tab-rank" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
-        <i data-lucide="trophy" class="w-4 h-4"></i>
-        <span>排行榜</span>
+        <i data-lucide="trophy" class="w-4 h-4"></i><span>排行榜</span>
       </button>
       <button onclick="showTab('invite')" id="tab-invite" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
-        <i data-lucide="users" class="w-4 h-4"></i>
-        <span>邀请</span>
+        <i data-lucide="users" class="w-4 h-4"></i><span>邀请</span>
       </button>
       <button onclick="showTab('ticket')" id="tab-ticket" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
-        <i data-lucide="message-square" class="w-4 h-4"></i>
-        <span>工单</span>
+        <i data-lucide="message-square" class="w-4 h-4"></i><span>工单</span>
       </button>
       <button onclick="showTab('admin')" id="tab-admin" class="tab-btn hidden flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
-        <i data-lucide="shield" class="w-4 h-4"></i>
-        <span>管理</span>
+        <i data-lucide="shield" class="w-4 h-4"></i><span>管理</span>
       </button>
     </div>
 
     <!-- Home Tab -->
     <div id="panel-home" class="tab-panel">
-      <!-- Quick Stats -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div class="glass-card rounded-2xl p-4 animate-fade-in">
           <div class="flex items-center space-x-3">
@@ -162,6 +144,17 @@
         </div>
         <div class="glass-card rounded-2xl p-4 animate-fade-in" style="animation-delay: 50ms">
           <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+              <i data-lucide="coins" class="w-5 h-5 text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 dark:text-gray-400">金币</p>
+              <p id="stat-coins" class="text-xl font-bold text-yellow-600">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="glass-card rounded-2xl p-4 animate-fade-in" style="animation-delay: 100ms">
+          <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
               <i data-lucide="gift" class="w-5 h-5 text-purple-600 dark:text-purple-400"></i>
             </div>
@@ -171,7 +164,7 @@
             </div>
           </div>
         </div>
-        <div class="glass-card rounded-2xl p-4 animate-fade-in" style="animation-delay: 100ms">
+        <div class="glass-card rounded-2xl p-4 animate-fade-in" style="animation-delay: 150ms">
           <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
               <i data-lucide="check-circle" class="w-5 h-5 text-green-600 dark:text-green-400"></i>
@@ -182,20 +175,8 @@
             </div>
           </div>
         </div>
-        <div class="glass-card rounded-2xl p-4 animate-fade-in" style="animation-delay: 150ms">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-              <i data-lucide="play" class="w-5 h-5 text-orange-600 dark:text-orange-400"></i>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500 dark:text-gray-400">播放次数</p>
-              <p id="stat-plays" class="text-xl font-bold text-gray-800 dark:text-white">0</p>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <!-- Quick Actions -->
       <div class="grid grid-cols-3 gap-3 mb-6">
         <button onclick="showTab('checkin')" class="glass-card rounded-xl p-4 flex flex-col items-center space-y-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
           <div class="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
@@ -217,60 +198,19 @@
         </button>
       </div>
 
-      <!-- Level Progress -->
       <div class="glass-card rounded-2xl p-6 mb-6 animate-fade-in">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-semibold text-gray-800 dark:text-white">等级进度</h3>
           <span id="level-display" class="level-badge level-1">Lv.1 新手</span>
         </div>
-        <div class="space-y-2">
-          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-            <span>下一级: Lv.<span id="next-level">2</span></span>
-            <span><span id="invite-progress">0</span>/5 邀请 · <span id="checkin-progress">0</span>/10 签到</span>
-          </div>
-          <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div id="level-progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all" style="width: 10%"></div>
-          </div>
-        </div>
-        <div class="mt-4 grid grid-cols-10 gap-1">
-          <div class="text-center">
-            <div class="w-6 h-6 mx-auto rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs text-white">1</div>
-          </div>
-          <div class="text-center">
-            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">2</div>
-          </div>
-          <div class="text-center">
-            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">3</div>
-          </div>
-          <div class="text-center">
-            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">4</div>
-          </div>
-          <div class="text-center">
-            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">5</div>
-          </div>
-          <div class="text-center">
-            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">6</div>
-          </div>
-          <div class="text-center">
-            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">7</div>
-          </div>
-          <div class="text-center">
-            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">8</div>
-          </div>
-          <div class="text-center">
-            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">9</div>
-          </div>
-          <div class="text-center">
-            <div class="w-6 h-6 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-500">10</div>
-          </div>
+        <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div id="level-progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all" style="width: 10%"></div>
         </div>
       </div>
 
-      <!-- Account Info -->
       <div class="glass-card rounded-2xl p-6 animate-fade-in">
         <h3 class="font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-          <i data-lucide="user" class="w-5 h-5 mr-2 text-blue-600"></i>
-          账号信息
+          <i data-lucide="user" class="w-5 h-5 mr-2 text-blue-600"></i>账号信息
         </h3>
         <div class="grid grid-cols-2 gap-4">
           <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
@@ -294,11 +234,10 @@
     <div id="panel-checkin" class="tab-panel hidden">
       <div class="glass-card rounded-2xl p-6 animate-fade-in">
         <h3 class="font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-          <i data-lucide="calendar-check" class="w-5 h-5 mr-2 text-green-600"></i>
-          每日签到
+          <i data-lucide="calendar-check" class="w-5 h-5 mr-2 text-green-600"></i>每日签到
         </h3>
         <div id="checkin-status" class="mb-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-          <div class="skeleton h-16 rounded-lg"></div>
+          <div class="text-center text-gray-500">加载中...</div>
         </div>
         <button id="checkin-btn" onclick="doCheckin()" class="w-full py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white font-medium rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
           <i data-lucide="gift" class="w-5 h-5 inline mr-2"></i>立即签到
@@ -306,27 +245,8 @@
       </div>
     </div>
 
-    <!-- Invite Tab -->
-    <div id="panel-invite" class="tab-panel hidden">
-      <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
-        <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
-          <h3 class="font-semibold text-gray-800 dark:text-white flex items-center">
-            <i data-lucide="users" class="w-5 h-5 mr-2 text-purple-600"></i>
-            邀请码管理
-          </h3>
-          <button onclick="createInviteCode()" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium rounded-lg">
-            <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>创建
-          </button>
-        </div>
-        <div id="invite-list" class="divide-y divide-gray-100 dark:divide-gray-800 max-h-96 overflow-y-auto">
-          <div class="p-4 text-center text-gray-500">加载中...</div>
-        </div>
-      </div>
-    </div>
-
     <!-- Shop Tab -->
     <div id="panel-shop" class="tab-panel hidden">
-      <!-- 金币余额 -->
       <div class="glass-card rounded-2xl p-4 mb-4 flex items-center justify-between animate-fade-in">
         <div class="flex items-center space-x-3">
           <div class="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
@@ -334,13 +254,11 @@
           </div>
           <div>
             <p class="text-xs text-gray-500">我的金币</p>
-            <p id="coin-balance" class="text-xl font-bold text-yellow-600">0</p>
+            <p id="shop-coins" class="text-xl font-bold text-yellow-600">0</p>
           </div>
         </div>
         <button onclick="showCoinLogs()" class="text-sm text-blue-600 dark:text-blue-400">明细</button>
       </div>
-      
-      <!-- 商品列表 -->
       <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
         <div class="p-4 border-b border-gray-200/50 dark:border-gray-700/50">
           <h3 class="font-semibold text-gray-800 dark:text-white">商城</h3>
@@ -353,24 +271,39 @@
 
     <!-- Rank Tab -->
     <div id="panel-rank" class="tab-panel hidden">
-      <!-- 排行榜类型切换 -->
       <div class="flex space-x-2 mb-4">
         <button onclick="loadLeaderboard('coins')" id="rank-btn-coins" class="flex-1 py-2 px-4 rounded-xl text-sm font-medium bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
-          <i data-lucide="coins" class="w-4 h-4 inline mr-1"></i>金币排行
+          <i data-lucide="coins" class="w-4 h-4 inline mr-1"></i>金币
         </button>
         <button onclick="loadLeaderboard('level')" id="rank-btn-level" class="flex-1 py-2 px-4 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">
-          <i data-lucide="award" class="w-4 h-4 inline mr-1"></i>等级排行
+          <i data-lucide="award" class="w-4 h-4 inline mr-1"></i>等级
         </button>
         <button onclick="loadLeaderboard('checkins')" id="rank-btn-checkins" class="flex-1 py-2 px-4 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">
-          <i data-lucide="calendar-check" class="w-4 h-4 inline mr-1"></i>签到排行
+          <i data-lucide="calendar-check" class="w-4 h-4 inline mr-1"></i>签到
         </button>
         <button onclick="loadLeaderboard('invites')" id="rank-btn-invites" class="flex-1 py-2 px-4 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">
-          <i data-lucide="users" class="w-4 h-4 inline mr-1"></i>邀请排行
+          <i data-lucide="users" class="w-4 h-4 inline mr-1"></i>邀请
         </button>
       </div>
-      
       <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
         <div id="rank-list" class="divide-y divide-gray-100 dark:divide-gray-800 max-h-[55vh] overflow-y-auto">
+          <div class="p-4 text-center text-gray-500">加载中...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invite Tab -->
+    <div id="panel-invite" class="tab-panel hidden">
+      <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
+        <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
+          <h3 class="font-semibold text-gray-800 dark:text-white flex items-center">
+            <i data-lucide="users" class="w-5 h-5 mr-2 text-purple-600"></i>邀请码管理
+          </h3>
+          <button onclick="createInviteCode()" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium rounded-lg">
+            <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>创建
+          </button>
+        </div>
+        <div id="invite-list" class="divide-y divide-gray-100 dark:divide-gray-800 max-h-96 overflow-y-auto">
           <div class="p-4 text-center text-gray-500">加载中...</div>
         </div>
       </div>
@@ -381,8 +314,7 @@
       <div class="glass-card rounded-2xl overflow-hidden animate-fade-in">
         <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
           <h3 class="font-semibold text-gray-800 dark:text-white flex items-center">
-            <i data-lucide="message-square" class="w-5 h-5 mr-2 text-blue-600"></i>
-            我的工单
+            <i data-lucide="message-square" class="w-5 h-5 mr-2 text-blue-600"></i>我的工单
           </h3>
           <button onclick="showNewTicketModal()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-medium rounded-lg">
             <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>新建
@@ -397,7 +329,7 @@
     <!-- Admin Tab -->
     <div id="panel-admin" class="tab-panel hidden">
       <div class="space-y-4">
-        <!-- Admin Stats -->
+        <!-- Stats -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div class="glass-card rounded-xl p-4">
             <p class="text-xs text-gray-500">总用户</p>
@@ -417,48 +349,39 @@
           </div>
         </div>
 
-        <!-- Admin Sub-tabs -->
+        <!-- Sub-tabs -->
         <div class="flex space-x-2 border-b border-gray-200 dark:border-gray-700 pb-2">
-          <button onclick="showAdminSubTab('products')" id="admin-tab-products" class="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 border-b-2 border-blue-600">商品管理</button>
-          <button onclick="showAdminSubTab('users')" id="admin-tab-users" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">用户管理</button>
-          <button onclick="showAdminSubTab('codes')" id="admin-tab-codes" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">续期码</button>
+          <button onclick="showAdminSub('products')" id="admin-sub-products" class="px-4 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600">商品管理</button>
+          <button onclick="showAdminSub('users')" id="admin-sub-users" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">用户管理</button>
+          <button onclick="showAdminSub('codes')" id="admin-sub-codes" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">续期码</button>
         </div>
 
-        <!-- Products Panel -->
-        <div id="admin-panel-products" class="admin-sub-panel">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="font-semibold text-gray-800 dark:text-white">商品列表</h3>
-            <button onclick="showCreateProductModal()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg">
-              <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>添加商品
-            </button>
+        <!-- Products -->
+        <div id="admin-panel-products">
+          <div class="flex justify-end mb-2">
+            <button onclick="showCreateProductModal()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg"><i data-lucide="plus" class="w-4 h-4 inline"></i> 添加商品</button>
           </div>
-          <div id="admin-product-list" class="glass-card rounded-xl divide-y divide-gray-100 dark:divide-gray-800 max-h-96 overflow-y-auto">
+          <div id="admin-product-list" class="glass-card rounded-xl divide-y divide-gray-100 dark:divide-gray-800 max-h-80 overflow-y-auto">
             <div class="p-4 text-center text-gray-500">加载中...</div>
           </div>
         </div>
 
-        <!-- Users Panel -->
-        <div id="admin-panel-users" class="admin-sub-panel hidden">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="font-semibold text-gray-800 dark:text-white">用户列表</h3>
-            <button onclick="showCreateUserModal()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg">
-              <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>创建用户
-            </button>
+        <!-- Users -->
+        <div id="admin-panel-users" class="hidden">
+          <div class="flex justify-end mb-2">
+            <button onclick="showCreateUserModal()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg"><i data-lucide="plus" class="w-4 h-4 inline"></i> 创建用户</button>
           </div>
-          <div id="admin-user-list" class="glass-card rounded-xl divide-y divide-gray-100 dark:divide-gray-800 max-h-96 overflow-y-auto">
+          <div id="admin-user-list" class="glass-card rounded-xl divide-y divide-gray-100 dark:divide-gray-800 max-h-80 overflow-y-auto">
             <div class="p-4 text-center text-gray-500">点击"用户管理"加载</div>
           </div>
         </div>
 
-        <!-- Codes Panel -->
-        <div id="admin-panel-codes" class="admin-sub-panel hidden">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="font-semibold text-gray-800 dark:text-white">续期码</h3>
-            <button onclick="showCreateCodeModal()" class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg">
-              <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>生成续期码
-            </button>
+        <!-- Codes -->
+        <div id="admin-panel-codes" class="hidden">
+          <div class="flex justify-end mb-2">
+            <button onclick="showCreateCodeModal()" class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg"><i data-lucide="plus" class="w-4 h-4 inline"></i> 生成续期码</button>
           </div>
-          <div id="admin-code-list" class="glass-card rounded-xl divide-y divide-gray-100 dark:divide-gray-800 max-h-96 overflow-y-auto">
+          <div id="admin-code-list" class="glass-card rounded-xl divide-y divide-gray-100 dark:divide-gray-800 max-h-80 overflow-y-auto">
             <div class="p-4 text-center text-gray-500">点击"续期码"加载</div>
           </div>
         </div>
@@ -466,7 +389,7 @@
     </div>
   </main>
 
-  <!-- Modals -->
+  <!-- Modal -->
   <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal()"></div>
     <div class="relative w-full max-w-md glass-card rounded-2xl p-6 animate-fade-in max-h-[80vh] overflow-y-auto">
@@ -477,7 +400,6 @@
   <script>
     const API = '/api';
     const token = localStorage.getItem('token');
-    
     let userData = null;
     let isAdmin = false;
     
@@ -508,126 +430,73 @@
       window.location.href = '/';
     }
 
-    // Tabs
     function showTab(name) {
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(b => {
         b.classList.remove('active');
         b.classList.add('text-gray-600', 'dark:text-gray-400');
       });
-      
-      document.getElementById(`panel-${name}`).classList.remove('hidden');
-      const btn = document.getElementById(`tab-${name}`);
+      document.getElementById('panel-' + name).classList.remove('hidden');
+      const btn = document.getElementById('tab-' + name);
       btn.classList.add('active');
       btn.classList.remove('text-gray-600', 'dark:text-gray-400');
-      
       lucide.createIcons();
-      
       if (name === 'checkin') loadCheckinStatus();
       if (name === 'shop') loadProducts();
-      if (name === 'rank') loadLeaderboard();
+      if (name === 'rank') loadLeaderboard('coins');
       if (name === 'invite') loadInviteCodes();
       if (name === 'ticket') loadTickets();
       if (name === 'admin') loadAdminStats();
     }
 
-    // Load User Info
     async function loadUserInfo() {
       try {
-        const res = await fetch(`${API}/user/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(API + '/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
         userData = await res.json();
         if (!res.ok) { logout(); return; }
-        
         isAdmin = userData.isAdmin;
-        
         document.getElementById('info-username').textContent = userData.username;
         document.getElementById('welcomeUser').textContent = userData.username;
+        document.getElementById('stat-coins').textContent = userData.coins || 0;
+        document.getElementById('shop-coins').textContent = userData.coins || 0;
+        if (isAdmin) document.getElementById('tab-admin').classList.remove('hidden');
         
-        // 更新金币显示
-        document.getElementById('coin-balance').textContent = userData.coins || 0;
-        
-        // 显示管理员 Tab
-        if (isAdmin) {
-          document.getElementById('tab-admin').classList.remove('hidden');
-        }
-        
-        // 等级显示
         const level = userData.level || 1;
-        updateLevelDisplay(level, userData.totalInvites || 0, userData.totalCheckins || 0);
+        const levelNames = ['新手', '入门', '熟练', '精通', '专家', '大师', '宗师', '传说', '神话', '至尊'];
+        document.getElementById('userLevelBadge').textContent = 'Lv.' + level;
+        document.getElementById('userLevelBadge').className = 'level-badge level-' + level;
+        document.getElementById('level-display').textContent = 'Lv.' + level + ' ' + (levelNames[level-1] || '至尊');
+        document.getElementById('level-display').className = 'level-badge level-' + level;
         
-        // 到期时间
         if (userData.expiresAt) {
           const exp = new Date(userData.expiresAt);
           const now = new Date();
           const days = Math.floor((exp - now) / 86400000);
           document.getElementById('info-expires').innerHTML = days < 0 
-            ? `<span class="text-red-600">${exp.toLocaleDateString()} (已过期)</span>`
-            : `<span class="text-green-600">${exp.toLocaleDateString()} (剩${days}天)</span>`;
+            ? '<span class="text-red-600">' + exp.toLocaleDateString() + ' (已过期)</span>'
+            : '<span class="text-green-600">' + exp.toLocaleDateString() + ' (剩' + days + '天)</span>';
           document.getElementById('stat-days').textContent = days < 0 ? '0' : days;
         } else {
           document.getElementById('info-expires').innerHTML = '<span class="text-green-600">永久有效</span>';
           document.getElementById('stat-days').textContent = '∞';
         }
-        
-        // 统计
         document.getElementById('stat-invites').textContent = userData.totalInvites || 0;
         document.getElementById('stat-checkins').textContent = userData.totalCheckins || 0;
-        
-        loadStats();
       } catch (e) { console.error(e); }
     }
 
-    function updateLevelDisplay(level, invites, checkins) {
-      const levelNames = ['新手', '入门', '熟练', '精通', '专家', '大师', '宗师', '传说', '神话', '至尊'];
-      const badge = document.getElementById('userLevelBadge');
-      const display = document.getElementById('level-display');
-      
-      badge.textContent = `Lv.${level}`;
-      badge.className = `level-badge level-${level}`;
-      
-      display.textContent = `Lv.${level} ${levelNames[level - 1] || '至尊'}`;
-      display.className = `level-badge level-${level}`;
-      
-      // 进度
-      const nextLevel = Math.min(10, level + 1);
-      document.getElementById('next-level').textContent = nextLevel;
-      document.getElementById('invite-progress').textContent = invites % 5;
-      document.getElementById('checkin-progress').textContent = checkins % 10;
-      
-      const progress = Math.min(100, ((invites % 5) / 5 * 50) + ((checkins % 10) / 10 * 50));
-      document.getElementById('level-progress-bar').style.width = `${progress}%`;
-    }
-
-    async function loadStats() {
-      try {
-        const playRes = await fetch(`${API}/user/play-history`, { headers: { 'Authorization': `Bearer ${token}` } });
-        const playData = await playRes.json();
-        document.getElementById('stat-plays').textContent = playData.stats?.totalPlays || 0;
-      } catch (e) { console.error(e); }
-    }
-
-    // Checkin
     async function loadCheckinStatus() {
       try {
-        const res = await fetch(`${API}/user/checkin-status`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(API + '/user/checkin-status', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
         const statusEl = document.getElementById('checkin-status');
         const btn = document.getElementById('checkin-btn');
-        
         if (data.hasCheckedInToday) {
-          statusEl.innerHTML = `
-            <div class="text-center">
-              <div class="text-green-600 dark:text-green-400 font-medium mb-2">✓ 今日已签到</div>
-              <p class="text-sm text-gray-500">累计签到 ${data.totalCheckins} 天</p>
-            </div>`;
+          statusEl.innerHTML = '<div class="text-center"><div class="text-green-600 font-medium mb-2">✓ 今日已签到</div><p class="text-sm text-gray-500">累计签到 ' + (data.totalCheckins || 0) + ' 天</p></div>';
           btn.disabled = true;
           btn.classList.add('opacity-50', 'cursor-not-allowed');
         } else {
-          statusEl.innerHTML = `
-            <div class="text-center">
-              <div class="text-blue-600 dark:text-blue-400 font-medium mb-2">今日未签到</div>
-              <p class="text-sm text-gray-500">签到可获得 10-30 金币奖励</p>
-            </div>`;
+          statusEl.innerHTML = '<div class="text-center"><div class="text-blue-600 font-medium mb-2">今日未签到</div><p class="text-sm text-gray-500">签到可获得 10-30 金币</p></div>';
           btn.disabled = false;
           btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
@@ -636,13 +505,10 @@
 
     async function doCheckin() {
       try {
-        const res = await fetch(`${API}/user/checkin`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(API + '/user/checkin', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
         if (res.ok) {
-          showToast(`签到成功！获得 ${data.coinReward} 金币`, 'success');
-          if (data.newLevel) {
-            showToast(`恭喜升级到 Lv.${data.newLevel}！`, 'success');
-          }
+          showToast('签到成功！获得 ' + data.coinReward + ' 金币', 'success');
           loadUserInfo();
           loadCheckinStatus();
         } else {
@@ -651,131 +517,29 @@
       } catch (e) { showToast('签到失败', 'error'); }
     }
 
-    // Shop
     async function loadProducts() {
       try {
-        document.getElementById('coin-balance').textContent = userData?.coins || 0;
-        
-        const res = await fetch(`${API}/shop/products`, { headers: { 'Authorization': `Bearer ${token}` } });
+        document.getElementById('shop-coins').textContent = userData?.coins || 0;
+        const res = await fetch(API + '/shop/products', { headers: { 'Authorization': 'Bearer ' + token } });
         const products = await res.json();
         const container = document.getElementById('product-list');
-        
         if (!products.length) {
           container.innerHTML = '<div class="col-span-2 text-center text-gray-500 py-8">暂无商品</div>';
           return;
         }
-        
-        container.innerHTML = products.map(p => `
-          <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-            <div class="flex items-start justify-between mb-2">
-              <div>
-                <p class="font-medium text-gray-800 dark:text-white">${p.name}</p>
-                ${p.description ? `<p class="text-xs text-gray-500 mt-1">${p.description}</p>` : ''}
-              </div>
-              ${p.days_reward > 0 ? `<span class="badge badge-success">+${p.days_reward}天</span>` : ''}
-            </div>
-            <div class="flex items-center justify-between mt-3">
-              <div class="flex items-center space-x-1">
-                <i data-lucide="coins" class="w-4 h-4 text-yellow-600"></i>
-                <span class="font-bold text-yellow-600">${p.price}</span>
-              </div>
-              <button onclick="purchaseProduct(${p.id}, '${p.name}', ${p.price})" 
-                class="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-medium rounded-lg">
-                兑换
-              </button>
-            </div>
-          </div>
-        `).join('');
-        
+        container.innerHTML = products.map(p => '<div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl"><div class="flex justify-between mb-2"><p class="font-medium text-gray-800 dark:text-white">' + p.name + '</p>' + (p.days_reward > 0 ? '<span class="badge badge-success">+' + p.days_reward + '天</span>' : '') + '</div><div class="flex justify-between mt-3"><span class="text-yellow-600 font-bold">💰 ' + p.price + '</span><button onclick="buyProduct(' + p.id + ',\'' + p.name + '\',' + p.price + ')" class="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg">兑换</button></div></div>').join('');
         lucide.createIcons();
       } catch (e) { console.error(e); }
     }
 
-    // Leaderboard
-    let currentRankType = 'coins';
-    
-    async function loadLeaderboard(type = 'coins') {
-      currentRankType = type;
-      
-      // 更新按钮样式
-      const types = ['coins', 'level', 'checkins', 'invites'];
-      types.forEach(t => {
-        const btn = document.getElementById(`rank-btn-${t}`);
-        if (t === type) {
-          btn.className = 'flex-1 py-2 px-4 rounded-xl text-sm font-medium bg-gradient-to-r from-yellow-500 to-orange-500 text-white';
-        } else {
-          btn.className = 'flex-1 py-2 px-4 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
-        }
-      });
-      
+    async function buyProduct(id, name, price) {
+      if ((userData?.coins || 0) < price) { showToast('金币不足', 'warning'); return; }
+      if (!confirm('确定花费 ' + price + ' 金币兑换「' + name + '」？')) return;
       try {
-        const res = await fetch(`${API}/leaderboard?type=${type}`, { headers: { 'Authorization': `Bearer ${token}` } });
-        const list = await res.json();
-        const container = document.getElementById('rank-list');
-        
-        if (!list.length) {
-          container.innerHTML = '<div class="p-8 text-center text-gray-500">暂无数据</div>';
-          return;
-        }
-        
-        const rankIcons = ['🥇', '🥈', '🥉'];
-        
-        // 根据类型决定显示的主要数据
-        const getMainValue = (u) => {
-          switch(type) {
-            case 'coins': return `<div class="flex items-center space-x-1 text-yellow-600 font-bold"><i data-lucide="coins" class="w-5 h-5"></i><span>${u.coins || 0}</span></div>`;
-            case 'level': return `<span class="level-badge level-${u.user_level || 1}">Lv.${u.user_level || 1}</span>`;
-            case 'checkins': return `<div class="text-green-600 font-bold">${u.total_checkins || 0} 天</div>`;
-            case 'invites': return `<div class="text-purple-600 font-bold">${u.total_invites || 0} 人</div>`;
-          }
-        };
-        
-        container.innerHTML = list.map((u, i) => {
-          const rank = i + 1;
-          const isMe = u.id === userData?.id;
-          return `
-            <div class="flex items-center p-4 ${isMe ? 'bg-blue-50 dark:bg-blue-900/20' : ''} hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
-              <div class="w-10 text-center font-bold ${rank <= 3 ? 'text-2xl' : 'text-gray-500'}">
-                ${rank <= 3 ? rankIcons[rank-1] : rank}
-              </div>
-              <div class="flex-1 ml-4">
-                <div class="flex items-center space-x-2">
-                  <p class="font-medium text-gray-800 dark:text-white">${u.username}</p>
-                  ${isMe ? '<span class="text-xs text-blue-600">(我)</span>' : ''}
-                </div>
-                <div class="flex items-center space-x-3 text-xs text-gray-500 mt-1">
-                  <span class="level-badge level-${u.user_level || 1} text-xs">Lv.${u.user_level || 1}</span>
-                  <span>💰 ${u.coins || 0}</span>
-                  <span>📅 ${u.total_checkins || 0}天</span>
-                  <span>👥 ${u.total_invites || 0}人</span>
-                </div>
-              </div>
-              <div>${getMainValue(u)}</div>
-            </div>
-          `;
-        }).join('');
-        
-        lucide.createIcons();
-      } catch (e) { console.error(e); }
-    }
-
-    async function purchaseProduct(productId, name, price) {
-      if ((userData?.coins || 0) < price) {
-        showToast('金币不足', 'warning');
-        return;
-      }
-      
-      if (!confirm(`确定花费 ${price} 金币兑换「${name}」？`)) return;
-      
-      try {
-        const res = await fetch(`${API}/shop/purchase/${productId}`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch(API + '/shop/purchase/' + id, { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
-        
         if (res.ok) {
-          showToast(`兑换成功！${data.daysRewarded > 0 ? `获得 ${data.daysRewarded} 天有效期` : ''}`, 'success');
+          showToast('兑换成功！' + (data.daysRewarded > 0 ? '获得 ' + data.daysRewarded + ' 天有效期' : ''), 'success');
           loadUserInfo();
           loadProducts();
         } else {
@@ -784,114 +548,62 @@
       } catch (e) { showToast('兑换失败', 'error'); }
     }
 
-    async function showCoinLogs() {
+    async function loadLeaderboard(type) {
       try {
-        const res = await fetch(`${API}/user/coin-logs`, { headers: { 'Authorization': `Bearer ${token}` } });
-        const logs = await res.json();
+        ['coins', 'level', 'checkins', 'invites'].forEach(t => {
+          const btn = document.getElementById('rank-btn-' + t);
+          if (t === type) {
+            btn.className = 'flex-1 py-2 px-4 rounded-xl text-sm font-medium bg-gradient-to-r from-yellow-500 to-orange-500 text-white';
+          } else {
+            btn.className = 'flex-1 py-2 px-4 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
+          }
+        });
         
-        const typeNames = {
-          checkin: '签到奖励',
-          invite_reward: '邀请奖励',
-          redeem: '续期码',
-          admin_grant: '管理员发放',
-          admin_deduct: '管理员扣除',
-          purchase: '商城消费'
-        };
+        const res = await fetch(API + '/leaderboard?type=' + type, { headers: { 'Authorization': 'Bearer ' + token } });
+        const list = await res.json();
+        const container = document.getElementById('rank-list');
+        if (!list.length) { container.innerHTML = '<div class="p-8 text-center text-gray-500">暂无数据</div>'; return; }
         
-        document.getElementById('modal-content').innerHTML = `
-          <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">金币明细</h3>
-          <div class="max-h-80 overflow-y-auto space-y-2">
-            ${logs.length ? logs.map(l => `
-              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                <div>
-                  <p class="font-medium text-gray-800 dark:text-white">${typeNames[l.type] || l.type}</p>
-                  <p class="text-xs text-gray-500">${new Date(l.created_at).toLocaleString()}</p>
-                </div>
-                <span class="${l.amount > 0 ? 'text-green-600' : 'text-red-600'} font-bold">
-                  ${l.amount > 0 ? '+' : ''}${l.amount}
-                </span>
-              </div>
-            `).join('') : '<div class="text-center text-gray-500 py-4">暂无记录</div>'}
-          </div>
-          <button onclick="closeModal()" class="w-full mt-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">关闭</button>
-        `;
-        document.getElementById('modal').classList.remove('hidden');
-      } catch (e) { showToast('加载失败', 'error'); }
+        const rankIcons = ['🥇', '🥈', '🥉'];
+        container.innerHTML = list.map((u, i) => {
+          const rank = i + 1;
+          const isMe = u.id === userData?.id;
+          return '<div class="flex items-center p-4 ' + (isMe ? 'bg-blue-50 dark:bg-blue-900/20' : '') + '"><div class="w-10 text-center font-bold ' + (rank <= 3 ? 'text-2xl' : 'text-gray-500') + '">' + (rank <= 3 ? rankIcons[rank-1] : rank) + '</div><div class="flex-1 ml-4"><p class="font-medium text-gray-800 dark:text-white">' + u.username + (isMe ? ' <span class="text-xs text-blue-600">(我)</span>' : '') + '</p><div class="flex items-center space-x-3 text-xs text-gray-500 mt-1"><span class="level-badge level-' + (u.user_level || 1) + '">Lv.' + (u.user_level || 1) + '</span><span>💰 ' + (u.coins || 0) + '</span><span>📅 ' + (u.total_checkins || 0) + '天</span><span>👥 ' + (u.total_invites || 0) + '人</span></div></div></div>';
+        }).join('');
+        lucide.createIcons();
+      } catch (e) { console.error(e); }
     }
 
-    // Invite
     async function loadInviteCodes() {
       try {
-        const res = await fetch(`${API}/user/invitation-codes`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(API + '/user/invitation-codes', { headers: { 'Authorization': 'Bearer ' + token } });
         const codes = await res.json();
         const container = document.getElementById('invite-list');
-        
-        if (!codes.length) {
-          container.innerHTML = '<div class="p-6 text-center text-gray-500">暂无邀请码，点击右上角创建</div>';
-          return;
-        }
-        
-        container.innerHTML = codes.map(c => `
-          <div class="p-4 flex items-center justify-between">
-            <div>
-              <p class="font-mono font-medium text-gray-800 dark:text-white">${c.code}</p>
-              <p class="text-xs text-gray-500 mt-1">已用 ${c.used_count}/${c.max_uses || '∞'} 次</p>
-            </div>
-            <span class="badge ${c.is_active ? 'badge-success' : 'badge-danger'}">${c.is_active ? '有效' : '已禁用'}</span>
-          </div>
-        `).join('');
+        if (!codes.length) { container.innerHTML = '<div class="p-6 text-center text-gray-500">暂无邀请码</div>'; return; }
+        container.innerHTML = codes.map(c => '<div class="p-4 flex justify-between"><div><p class="font-mono font-medium text-gray-800 dark:text-white">' + c.code + '</p><p class="text-xs text-gray-500">已用 ' + (c.used_count || 0) + '/' + (c.max_uses || '∞') + '</p></div><span class="badge ' + (c.is_active ? 'badge-success' : 'badge-danger') + '">' + (c.is_active ? '有效' : '已禁用') + '</span></div>').join('');
       } catch (e) { console.error(e); }
     }
 
     async function createInviteCode() {
       try {
-        const res = await fetch(`${API}/user/invitation-codes`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-        const data = await res.json();
-        if (res.ok) {
-          showToast('邀请码创建成功', 'success');
-          loadInviteCodes();
-        } else {
-          showToast(data.error || '创建失败', 'error');
-        }
+        const res = await fetch(API + '/user/invitation-codes', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+        if (res.ok) { showToast('邀请码创建成功', 'success'); loadInviteCodes(); }
+        else { const d = await res.json(); showToast(d.error || '创建失败', 'error'); }
       } catch (e) { showToast('创建失败', 'error'); }
     }
 
-    // Tickets
     async function loadTickets() {
       try {
-        const res = await fetch(`${API}/user/tickets`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(API + '/user/tickets', { headers: { 'Authorization': 'Bearer ' + token } });
         const tickets = await res.json();
         const container = document.getElementById('ticket-list');
-        
-        if (!tickets.length) {
-          container.innerHTML = '<div class="p-6 text-center text-gray-500">暂无工单</div>';
-          return;
-        }
-        
-        container.innerHTML = tickets.map(t => `
-          <div class="p-4 flex items-center justify-between">
-            <div>
-              <p class="font-medium text-gray-800 dark:text-white">${t.subject}</p>
-              <p class="text-xs text-gray-500 mt-1">${new Date(t.created_at).toLocaleDateString()}</p>
-            </div>
-            <span class="badge ${t.status === 'open' ? 'badge-warning' : t.status === 'closed' ? 'badge-danger' : 'badge-success'}">
-              ${t.status === 'open' ? '待处理' : t.status === 'closed' ? '已关闭' : '处理中'}
-            </span>
-          </div>
-        `).join('');
+        if (!tickets.length) { container.innerHTML = '<div class="p-6 text-center text-gray-500">暂无工单</div>'; return; }
+        container.innerHTML = tickets.map(t => '<div class="p-4 flex justify-between"><div><p class="font-medium text-gray-800 dark:text-white">' + t.subject + '</p><p class="text-xs text-gray-500">' + new Date(t.created_at).toLocaleDateString() + '</p></div><span class="badge ' + (t.status === 'open' ? 'badge-warning' : t.status === 'closed' ? 'badge-danger' : 'badge-success') + '">' + (t.status === 'open' ? '待处理' : t.status === 'closed' ? '已关闭' : '处理中') + '</span></div>').join('');
       } catch (e) { console.error(e); }
     }
 
     function showNewTicketModal() {
-      document.getElementById('modal-content').innerHTML = `
-        <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">新建工单</h3>
-        <input type="text" id="ticket-subject" placeholder="标题" class="w-full px-4 py-2 mb-3 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
-        <textarea id="ticket-message" placeholder="描述您的问题..." rows="4" class="w-full px-4 py-2 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"></textarea>
-        <div class="flex space-x-3">
-          <button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">取消</button>
-          <button onclick="submitTicket()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg">提交</button>
-        </div>
-      `;
+      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">新建工单</h3><input type="text" id="ticket-subject" placeholder="标题" class="w-full px-4 py-2 mb-3 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><textarea id="ticket-message" placeholder="描述..." rows="4" class="w-full px-4 py-2 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"></textarea><div class="flex space-x-3"><button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">取消</button><button onclick="submitTicket()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg">提交</button></div>';
       document.getElementById('modal').classList.remove('hidden');
     }
 
@@ -899,269 +611,188 @@
       const subject = document.getElementById('ticket-subject').value.trim();
       const message = document.getElementById('ticket-message').value.trim();
       if (!subject || !message) { showToast('请填写完整', 'warning'); return; }
-      
       try {
-        const res = await fetch(`${API}/user/tickets`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subject, message })
-        });
-        if (res.ok) {
-          showToast('工单已提交', 'success');
-          closeModal();
-          loadTickets();
-        } else {
-          showToast('提交失败', 'error');
-        }
+        const res = await fetch(API + '/user/tickets', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ subject, message }) });
+        if (res.ok) { showToast('工单已提交', 'success'); closeModal(); loadTickets(); }
+        else { showToast('提交失败', 'error'); }
       } catch (e) { showToast('提交失败', 'error'); }
     }
 
-    // Redeem
     function showRedeemModal() {
-      document.getElementById('modal-content').innerHTML = `
-        <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">使用续期码</h3>
-        <input type="text" id="redeem-code" placeholder="输入续期码" class="w-full px-4 py-3 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
-        <button onclick="redeemCode()" class="w-full py-3 bg-gradient-to-r from-teal-600 to-green-600 text-white rounded-lg">使用</button>
-      `;
+      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">使用续期码</h3><input type="text" id="redeem-code" placeholder="输入续期码" class="w-full px-4 py-3 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><button onclick="redeemCode()" class="w-full py-3 bg-teal-600 text-white rounded-lg">使用</button>';
       document.getElementById('modal').classList.remove('hidden');
     }
 
     async function redeemCode() {
       const code = document.getElementById('redeem-code').value.trim();
       if (!code) { showToast('请输入续期码', 'warning'); return; }
-      
       try {
-        const res = await fetch(`${API}/user/redeem`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          showToast('续期成功', 'success');
-          closeModal();
-          loadUserInfo();
-        } else {
-          showToast(data.error || '续期失败', 'error');
-        }
-      } catch (e) { showToast('续期失败', 'error'); }
+        const res = await fetch(API + '/user/redeem', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
+        if (res.ok) { showToast('续期成功', 'success'); closeModal(); loadUserInfo(); }
+        else { const d = await res.json(); showToast(d.error || '失败', 'error'); }
+      } catch (e) { showToast('失败', 'error'); }
     }
 
-    // Password
     function showPasswordModal() {
-      document.getElementById('modal-content').innerHTML = `
-        <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">修改密码</h3>
-        <input type="password" id="old-pwd" placeholder="原密码" class="w-full px-4 py-2 mb-3 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
-        <input type="password" id="new-pwd" placeholder="新密码（至少6位）" class="w-full px-4 py-2 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
-        <button onclick="changePassword()" class="w-full py-3 bg-yellow-600 text-white rounded-lg">保存</button>
-      `;
+      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">修改密码</h3><input type="password" id="old-pwd" placeholder="原密码" class="w-full px-4 py-2 mb-3 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><input type="password" id="new-pwd" placeholder="新密码（至少6位）" class="w-full px-4 py-2 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><button onclick="changePassword()" class="w-full py-3 bg-yellow-600 text-white rounded-lg">保存</button>';
       document.getElementById('modal').classList.remove('hidden');
     }
 
     async function changePassword() {
       const oldPwd = document.getElementById('old-pwd').value;
       const newPwd = document.getElementById('new-pwd').value;
-      
       if (!oldPwd || !newPwd) { showToast('请填写完整', 'warning'); return; }
       if (newPwd.length < 6) { showToast('新密码至少6位', 'warning'); return; }
-      
       try {
-        const res = await fetch(`${API}/user/change-password`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          showToast('密码已修改，请重新登录', 'success');
-          setTimeout(logout, 1500);
-        } else {
-          showToast(data.error || '修改失败', 'error');
-        }
-      } catch (e) { showToast('修改失败', 'error'); }
+        const res = await fetch(API + '/user/change-password', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd }) });
+        if (res.ok) { showToast('密码已修改，请重新登录', 'success'); setTimeout(logout, 1500); }
+        else { const d = await res.json(); showToast(d.error || '失败', 'error'); }
+      } catch (e) { showToast('失败', 'error'); }
     }
 
-    // Admin
+    function showCoinLogs() {
+      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">金币明细</h3><div id="coin-logs" class="max-h-80 overflow-y-auto"><div class="text-center text-gray-500 py-4">加载中...</div></div><button onclick="closeModal()" class="w-full mt-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">关闭</button>';
+      document.getElementById('modal').classList.remove('hidden');
+      fetch(API + '/user/coin-logs', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()).then(logs => {
+        const typeNames = { checkin: '签到奖励', invite_reward: '邀请奖励', purchase: '商城消费', admin_grant: '管理员发放' };
+        document.getElementById('coin-logs').innerHTML = logs.length ? logs.map(l => '<div class="flex justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg mb-2"><div><p class="text-sm text-gray-800 dark:text-white">' + (typeNames[l.type] || l.type) + '</p><p class="text-xs text-gray-500">' + new Date(l.created_at).toLocaleString() + '</p></div><span class="' + (l.amount > 0 ? 'text-green-600' : 'text-red-600') + ' font-bold">' + (l.amount > 0 ? '+' : '') + l.amount + '</span></div>').join('') : '<div class="text-center text-gray-500 py-4">暂无记录</div>';
+      });
+    }
+
+    // Admin functions
     async function loadAdminStats() {
       try {
-        const res = await fetch(`${API}/admin/stats`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(API + '/admin/stats', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
         document.getElementById('admin-total').textContent = data.totalUsers || 0;
         document.getElementById('admin-active').textContent = data.activeUsers || 0;
         document.getElementById('admin-expired').textContent = data.expiredUsers || 0;
         document.getElementById('admin-sessions').textContent = data.activeSessions || 0;
-        
-        // 加载商品列表
         loadAdminProducts();
       } catch (e) { console.error(e); }
+    }
+
+    function showAdminSub(name) {
+      ['products', 'users', 'codes'].forEach(t => {
+        const tab = document.getElementById('admin-sub-' + t);
+        const panel = document.getElementById('admin-panel-' + t);
+        if (t === name) {
+          tab.className = 'px-4 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600';
+          panel.classList.remove('hidden');
+        } else {
+          tab.className = 'px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400';
+          panel.classList.add('hidden');
+        }
+      });
+      if (name === 'products') loadAdminProducts();
+      if (name === 'users') loadAdminUsers();
+      if (name === 'codes') loadAdminCodes();
     }
 
     async function loadAdminProducts() {
       try {
-        const res = await fetch(`${API}/admin/products`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(API + '/admin/products', { headers: { 'Authorization': 'Bearer ' + token } });
         const products = await res.json();
         const container = document.getElementById('admin-product-list');
-        
-        if (!products.length) {
-          container.innerHTML = '<div class="p-4 text-center text-gray-500">暂无商品，点击上方"添加商品"创建</div>';
-          return;
-        }
-        
-        const typeNames = {
-          'days': '续期天数',
-          'tg_admin': 'TG群管',
-          'redemption_code': '续期码',
-          'default': '通用'
-        };
-        
-        container.innerHTML = products.map(p => `
-          <div class="p-3 flex items-center justify-between">
-            <div>
-              <p class="font-medium text-gray-800 dark:text-white">${p.name}</p>
-              <p class="text-xs text-gray-500">${p.price} 金币 · 库存: ${p.stock < 0 ? '无限' : p.stock} · 类型: ${typeNames[p.category] || '通用'}</p>
-            </div>
-            <div class="flex items-center space-x-2">
-              <span class="badge ${p.is_active ? 'badge-success' : 'badge-danger'}">${p.is_active ? '上架' : '下架'}</span>
-              <button onclick="toggleProduct(${p.id}, ${p.is_active})" class="text-xs text-blue-600 hover:underline">${p.is_active ? '下架' : '上架'}</button>
-            </div>
-          </div>
-        `).join('');
-        
+        if (!products.length) { container.innerHTML = '<div class="p-4 text-center text-gray-500">暂无商品</div>'; return; }
+        const typeNames = { days: '续期', tg_admin: 'TG群管', redemption_code: '续期码', default: '通用' };
+        container.innerHTML = products.map(p => '<div class="p-3 flex justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"><div><p class="font-medium text-gray-800 dark:text-white">' + p.name + '</p><p class="text-xs text-gray-500">' + p.price + ' 金币 · ' + (p.stock < 0 ? '无限' : p.stock) + ' · ' + (typeNames[p.category] || '通用') + '</p></div><div class="flex items-center space-x-2"><span class="badge ' + (p.is_active ? 'badge-success' : 'badge-danger') + '">' + (p.is_active ? '上架' : '下架') + '</span><button onclick="toggleProduct(' + p.id + ',' + p.is_active + ')" class="text-xs text-blue-600 hover:underline">' + (p.is_active ? '下架' : '上架') + '</button></div></div>').join('');
         lucide.createIcons();
       } catch (e) { console.error(e); }
     }
 
-    function showAdminUsersModal() {
-      window.location.href = '/admin';
-    }
-
-    function showAdminCodesModal() {
-      window.location.href = '/admin';
-    }
-
-    function showAdminProductsModal() {
-      // 已经在管理Tab中显示商品列表了
-    }
-
-    function showCreateProductModal() {
-      document.getElementById('modal-content').innerHTML = `
-        <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">添加商品</h3>
-        <div class="space-y-3">
-          <input type="text" id="product-name" placeholder="商品名称" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
-          <input type="text" id="product-desc" placeholder="描述（可选）" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
-          
-          <div>
-            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">商品类型</label>
-            <select id="product-type" onchange="updateProductTypeFields()" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
-              <option value="days">续期天数</option>
-              <option value="tg_admin">Telegram 群管</option>
-              <option value="redemption_code">续期码</option>
-            </select>
-          </div>
-          
-          <div id="type-days-fields">
-            <input type="number" id="product-days" placeholder="奖励天数" value="7" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
-          </div>
-          
-          <div id="type-tg-fields" class="hidden">
-            <input type="text" id="product-tg-link" placeholder="Telegram 群组链接" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white mb-2">
-            <input type="text" id="product-tg-userid" placeholder="用户 Telegram ID" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
-          </div>
-          
-          <div id="type-code-fields" class="hidden">
-            <input type="number" id="product-code-days" placeholder="续期码天数" value="30" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
-          </div>
-          
-          <div class="grid grid-cols-2 gap-3">
-            <input type="number" id="product-price" placeholder="价格（金币）" class="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
-            <input type="number" id="product-stock" placeholder="库存（-1无限）" value="-1" class="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white">
-          </div>
-        </div>
-        <div class="flex space-x-3 mt-4">
-          <button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">取消</button>
-          <button onclick="createProduct()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg">创建</button>
-        </div>
-      `;
-      document.getElementById('modal').classList.remove('hidden');
-    }
-
-    function updateProductTypeFields() {
-      const type = document.getElementById('product-type').value;
-      document.getElementById('type-days-fields').classList.add('hidden');
-      document.getElementById('type-tg-fields').classList.add('hidden');
-      document.getElementById('type-code-fields').classList.add('hidden');
-      
-      if (type === 'days') {
-        document.getElementById('type-days-fields').classList.remove('hidden');
-      } else if (type === 'tg_admin') {
-        document.getElementById('type-tg-fields').classList.remove('hidden');
-      } else if (type === 'redemption_code') {
-        document.getElementById('type-code-fields').classList.remove('hidden');
-      }
-    }
-
-    async function createProduct() {
-      const name = document.getElementById('product-name').value.trim();
-      const description = document.getElementById('product-desc').value.trim();
-      const price = parseInt(document.getElementById('product-price').value) || 0;
-      const stock = parseInt(document.getElementById('product-stock').value);
-      const productType = document.getElementById('product-type').value;
-      
-      let daysReward = 0;
-      let extraData = {};
-      
-      if (productType === 'days') {
-        daysReward = parseInt(document.getElementById('product-days').value) || 0;
-      } else if (productType === 'tg_admin') {
-        extraData.tgLink = document.getElementById('product-tg-link').value.trim();
-        extraData.tgUserId = document.getElementById('product-tg-userid').value.trim();
-        if (!extraData.tgLink) {
-          showToast('请输入 Telegram 群组链接', 'warning');
-          return;
-        }
-      } else if (productType === 'redemption_code') {
-        daysReward = parseInt(document.getElementById('product-code-days').value) || 30;
-      }
-      
-      if (!name) { showToast('请输入商品名称', 'warning'); return; }
-      
+    async function loadAdminUsers() {
       try {
-        const res = await fetch(`${API}/admin/products`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            name, 
-            description, 
-            price, 
-            stock: isNaN(stock) ? -1 : stock, 
-            daysReward, 
-            productType,
-            extraData,
-            isActive: true 
-          })
-        });
-        
-        if (res.ok) {
-          showToast('商品创建成功', 'success');
-          closeModal();
-          loadAdminProducts();
-        } else {
-          const data = await res.json();
-          showToast(data.error || '创建失败', 'error');
-        }
-      } catch (e) { showToast('创建失败', 'error'); }
+        const res = await fetch(API + '/admin/users', { headers: { 'Authorization': 'Bearer ' + token } });
+        const users = await res.json();
+        const container = document.getElementById('admin-user-list');
+        if (!users.length) { container.innerHTML = '<div class="p-4 text-center text-gray-500">暂无用户</div>'; return; }
+        container.innerHTML = users.slice(0, 20).map(u => {
+          const exp = u.expires_at ? new Date(u.expires_at) : null;
+          const isExpired = exp && exp < new Date();
+          return '<div class="p-3 flex justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"><div><p class="font-medium text-gray-800 dark:text-white">' + u.username + (u.is_admin ? ' <span class="text-xs text-blue-600">(管理员)</span>' : '') + '</p><p class="text-xs text-gray-500">' + (exp ? (isExpired ? '已过期' : '剩' + Math.floor((exp - new Date()) / 86400000) + '天') : '永久') + '</p></div><div class="flex items-center space-x-2"><span class="badge ' + (u.is_active && !isExpired ? 'badge-success' : 'badge-danger') + '">' + (u.is_active && !isExpired ? '正常' : '异常') + '</span><button onclick="toggleUserStatus(' + u.id + ',' + u.is_active + ')" class="text-xs text-blue-600 hover:underline">' + (u.is_active ? '禁用' : '启用') + '</button></div></div>';
+        }).join('');
+        lucide.createIcons();
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadAdminCodes() {
+      try {
+        const res = await fetch(API + '/admin/codes', { headers: { 'Authorization': 'Bearer ' + token } });
+        const codes = await res.json();
+        const container = document.getElementById('admin-code-list');
+        if (!codes.length) { container.innerHTML = '<div class="p-4 text-center text-gray-500">暂无续期码</div>'; return; }
+        container.innerHTML = codes.slice(0, 20).map(c => '<div class="p-3 flex justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"><div><p class="font-mono font-medium text-gray-800 dark:text-white">' + c.code + '</p><p class="text-xs text-gray-500">' + c.days + ' 天 · ' + (c.is_used ? '已用' : '未用') + '</p></div><span class="badge ' + (c.is_used ? 'badge-danger' : 'badge-success') + '">' + (c.is_used ? '已用' : '有效') + '</span></div>').join('');
+        lucide.createIcons();
+      } catch (e) { console.error(e); }
     }
 
     async function toggleProduct(id, isActive) {
       try {
-        await fetch(`${API}/admin/products/${id}`, {
-          method: 'PUT',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isActive: !isActive })
-        });
+        await fetch(API + '/admin/products/' + id, { method: 'PUT', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !isActive }) });
+        showToast(isActive ? '已下架' : '已上架', 'success');
         loadAdminProducts();
-        showToast(isActive ? '商品已下架' : '商品已上架', 'success');
-      } catch (e) { showToast('操作失败', 'error'); }
+      } catch (e) { showToast('失败', 'error'); }
+    }
+
+    async function toggleUserStatus(id, isActive) {
+      try {
+        await fetch(API + '/admin/users/' + id, { method: 'PUT', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !isActive }) });
+        showToast(isActive ? '已禁用' : '已启用', 'success');
+        loadAdminUsers();
+      } catch (e) { showToast('失败', 'error'); }
+    }
+
+    function showCreateProductModal() {
+      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">添加商品</h3><div class="space-y-3"><input type="text" id="product-name" placeholder="商品名称" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><select id="product-type" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><option value="days">续期天数</select><input type="number" id="product-days" placeholder="天数" value="7" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><input type="number" id="product-price" placeholder="价格（金币）" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><input type="number" id="product-stock" placeholder="库存（-1无限）" value="-1" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"></div><div class="flex space-x-3 mt-4"><button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">取消</button><button onclick="createProduct()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg">创建</button></div>';
+      document.getElementById('modal').classList.remove('hidden');
+    }
+
+    async function createProduct() {
+      const name = document.getElementById('product-name').value.trim();
+      const days = parseInt(document.getElementById('product-days').value) || 7;
+      const price = parseInt(document.getElementById('product-price').value) || 0;
+      const stock = parseInt(document.getElementById('product-stock').value);
+      if (!name) { showToast('请输入名称', 'warning'); return; }
+      try {
+        const res = await fetch(API + '/admin/products', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ name, daysReward: days, price, stock: isNaN(stock) ? -1 : stock, isActive: true }) });
+        if (res.ok) { showToast('创建成功', 'success'); closeModal(); loadAdminProducts(); }
+        else { const d = await res.json(); showToast(d.error || '失败', 'error'); }
+      } catch (e) { showToast('失败', 'error'); }
+    }
+
+    function showCreateUserModal() {
+      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">创建用户</h3><div class="space-y-3"><input type="text" id="new-username" placeholder="用户名" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><input type="password" id="new-password" placeholder="密码（留空自动生成）" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><select id="new-days" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><option value="0">永久</option><option value="30" selected>30 天</option><option value="90">90 天</option></select><label class="flex items-center space-x-2"><input type="checkbox" id="new-admin" class="rounded"><span class="text-sm text-gray-700 dark:text-gray-300">管理员</span></label></div><div class="flex space-x-3 mt-4"><button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">取消</button><button onclick="createUser()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg">创建</button></div>';
+      document.getElementById('modal').classList.remove('hidden');
+    }
+
+    async function createUser() {
+      const username = document.getElementById('new-username').value.trim();
+      const password = document.getElementById('new-password').value;
+      const days = parseInt(document.getElementById('new-days').value) || 0;
+      const isAdmin = document.getElementById('new-admin').checked;
+      if (!username) { showToast('请输入用户名', 'warning'); return; }
+      try {
+        const res = await fetch(API + '/admin/users', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, days, isAdmin }) });
+        if (res.ok) { showToast('创建成功', 'success'); closeModal(); loadAdminUsers(); }
+        else { const d = await res.json(); showToast(d.error || '失败', 'error'); }
+      } catch (e) { showToast('失败', 'error'); }
+    }
+
+    function showCreateCodeModal() {
+      document.getElementById('modal-content').innerHTML = '<h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">生成续期码</h3><div class="space-y-3"><select id="code-days" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"><option value="7">7 天</option><option value="30" selected>30 天</option><option value="90">90 天</option></select><input type="number" id="code-count" value="1" min="1" max="100" placeholder="数量" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white"></div><div class="flex space-x-3 mt-4"><button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg dark:text-white">取消</button><button onclick="createCodes()" class="flex-1 py-2 bg-green-600 text-white rounded-lg">生成</button></div>';
+      document.getElementById('modal').classList.remove('hidden');
+    }
+
+    async function createCodes() {
+      const days = parseInt(document.getElementById('code-days').value);
+      const count = parseInt(document.getElementById('code-count').value) || 1;
+      try {
+        const res = await fetch(API + '/admin/codes', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ days, count }) });
+        const data = await res.json();
+        if (res.ok) { showToast('生成 ' + data.codes.length + ' 个续期码', 'success'); closeModal(); loadAdminCodes(); }
+        else { showToast(data.error || '失败', 'error'); }
+      } catch (e) { showToast('失败', 'error'); }
     }
 
     function closeModal() {
