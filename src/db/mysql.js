@@ -147,8 +147,9 @@ class MySQLAdapter  {
           user_id INT NOT NULL,
           reward_days INT DEFAULT 0,
           ip_address VARCHAR(45),
+          checkin_date DATE GENERATED ALWAYS AS (DATE(created_at)) STORED,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          UNIQUE KEY uk_user_date (user_id, DATE(created_at)),
+          UNIQUE KEY uk_user_date (user_id, checkin_date),
           INDEX idx_user_id (user_id),
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
