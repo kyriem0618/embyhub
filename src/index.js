@@ -72,14 +72,18 @@ const sanitizeInput = (req, res, next) => {
 };
 
 app.use(sanitizeInput);
+// Shop routes
+app.use('/api', require('./routes/shop'));
 
 // ============ 初始化 ============
+global.db = null;
 let db = null;
 const emby = new EmbyClient(process.env.EMBY_URL || 'http://localhost:8096', process.env.EMBY_API_KEY || '');
 
 async function initializeApp() {
   try {
     db = await initDatabase();
+    global.db = db;
     console.log('[App] Database initialized');
     
     // 创建默认管理员
@@ -104,7 +108,6 @@ initializeApp();
 // 页面路由 ============
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../web/login.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, '../web/dashboard.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '../web/admin.html')));
 
 // 强制重定向到带版本号的页面
 app.get('/d', (req, res) => res.redirect('/dashboard?v=' + Date.now()));
@@ -763,7 +766,6 @@ app.get('/api/user/redemption-logs', authenticateToken, async (req, res) => {
 
 // ============ 管理员 API ============
 
-app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [users, sessions, stats] = await Promise.all([
       db.getAllUsers(),
@@ -783,7 +785,6 @@ app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) =>
   }
 });
 
-app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const users = await db.getAllUsers();
     res.json(users);
@@ -886,7 +887,6 @@ app.post('/api/admin/users/:id/reset-password', authenticateToken, requireAdmin,
   }
 });
 
-app.get('/api/admin/users/search', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { q } = req.query;
     if (!q) return res.json([]);
@@ -898,7 +898,6 @@ app.get('/api/admin/users/search', authenticateToken, requireAdmin, async (req, 
 });
 
 // 续期码管理
-app.get('/api/admin/codes', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const codes = await db.getAllRedemptionCodes();
     res.json(codes);
@@ -932,7 +931,6 @@ app.post('/api/admin/codes', authenticateToken, requireAdmin, async (req, res) =
 });
 
 // 邀请码管理
-app.get('/api/admin/invitation-codes', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const codes = await db.getAllInvitationCodes();
     res.json(codes);
@@ -961,7 +959,6 @@ app.delete('/api/admin/invitation-codes/:id', authenticateToken, requireAdmin, a
 });
 
 // 续期日志
-app.get('/api/admin/redemption-logs', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const logs = await db.getRedemptionLogs(null, 100);
     res.json(logs);
@@ -971,7 +968,6 @@ app.get('/api/admin/redemption-logs', authenticateToken, requireAdmin, async (re
 });
 
 // 工单管理
-app.get('/api/admin/tickets', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { status } = req.query;
     const tickets = await db.getAllTickets(status, 100);
@@ -1033,7 +1029,6 @@ app.post('/api/sessions/:id/stop', authenticateToken, requireAdmin, async (req, 
 
 // ============ 管理员 - 商品管理 ============
 
-app.get('/api/admin/products', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const products = await db.getAllProducts();
     res.json(products);
@@ -1108,7 +1103,6 @@ app.delete('/api/admin/products/:id', authenticateToken, requireAdmin, async (re
   }
 });
 
-app.get('/api/admin/purchases', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const purchases = await db.getAllPurchases(100);
     res.json(purchases);
