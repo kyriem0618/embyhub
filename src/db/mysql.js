@@ -2,6 +2,7 @@
  * MySQL 数据库实现 - 完整版
  */
 
+require("dotenv").config();
 const mysql = require('mysql2/promise');
 // DatabaseAdapter removed
 
@@ -10,7 +11,7 @@ class MySQLAdapter  {
     this.config = {
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT) || 3306,
-      user: process.env.DB_USER || 'embyhub',
+      user: process.env.DB_USER || 'susu',
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_NAME || 'embyhub',
       waitForConnections: true,
