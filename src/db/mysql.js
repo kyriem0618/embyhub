@@ -59,9 +59,6 @@ class MySQLAdapter  {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           INDEX idx_emby_id (emby_id),
           INDEX idx_username (username),
-        ) ENGINE=InnoDB
-        ) ENGINE=InnoDB
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
 
       // 金币日志表
