@@ -1161,4 +1161,6 @@ app.listen(PORT, '0.0.0.0', () => {
   `);
 });
 
+// EmbyHub Pro 媒体加速路由
+app.use('/api/media', require('./routes/media'));
 module.exports = app;
