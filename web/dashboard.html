@@ -7,11 +7,536 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>EmbyHub v1.3.0 - 用户中心</title>
-  <script>if (!localStorage.getItem('token')) window.location.href = '/';</script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script>if (!localStorage.getItem('token')) window.location.href = '/';
+// 加载加速统计
+async function loadAccelStats() {
+  try {
+    const res = await fetch('/api/media/stats', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    if (data.success && data.stats) {
+      document.getElementById('stat-files').textContent = data.stats.total_files || 0;
+      document.getElementById('stat-plays').textContent = data.stats.total_plays || data.stats.total_transfers || 0;
+      document.getElementById('stat-time').textContent = Math.round(data.stats.avg_response_time || 0);
+    }
+  } catch (e) {
+    console.error('Failed to load accel stats:', e);
+  }
+}
+
+// 加载网盘凭证状态
+async function loadCookieStatus() {
+  try {
+    const res = await fetch('/api/media/cookie', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    const container = document.getElementById('cookie-status');
+    if (data.has_cookie) {
+      container.innerHTML = '<div class="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0" /></svg><span class="text-green-800 dark:text-green-200">凭证已加密存储</span></div><p class="text-xs text-gray-500 mt-2">上次更新：' + (data.updated_at || '未知') + '</p>';
+    } else {
+      container.innerHTML = '<div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"><p class="text-gray-500 dark:text-gray-400">暂无凭证，添加后可享受秒传加速服务</p></div>';
+    }
+  } catch (e) {
+    console.error('Failed to load cookie status:', e);
+  }
+}
+
+// 加载播放记录
+async function loadPlayRecords() {
+  try {
+    const res = await fetch('/api/media/records?limit=10', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    const container = document.getElementById('play-records');
+    if (data.records && data.records.length > 0) {
+      container.innerHTML = data.records.map(r => '<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"><div class="flex items-center space-x-3"><div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">' + (r.file_name ? r.file_name[0].toUpperCase() : '📁') + '</div><div><p class="font-medium text-gray-800 dark:text-white">' + (r.file_name || '未知文件') + '</p><p class="text-xs text-gray-500">播放 ' + (r.play_count || 1) + ' 次</p></div></div><div class="text-xs text-gray-500">' + (r.last_played || '').split('T')[0] + '</div></div>').join('');
+    } else {
+      container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">暂无播放记录</p>';
+    }
+  } catch (e) {
+    console.error('Failed to load play records:', e);
+    document.getElementById('play-records').innerHTML = '<p class="text-gray-500 text-center py-8">加载失败</p>';
+  }
+}
+
+// 显示凭证弹窗
+function showCookieModal() {
+  const modal = document.getElementById('cookie-modal');
+  if (modal) modal.classList.remove('hidden');
+  else {
+    // 创建弹窗
+    const modalHtml = '<div id="cookie-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4"><h3 class="text-lg font-semibold mb-4">添加网盘凭证</h3><select id="drive-type" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700"><option value="115">115 网盘</option><option value="aliyun">阿里云盘</option></select><textarea id="cookie-value" placeholder="粘贴 Cookie 字符串..." class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white font-mono text-sm" rows="4"></textarea><div class="flex justify-end space-x-3 mt-4"><button onclick="document.getElementById('cookie-modal').remove()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button><button onclick="saveCookie()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">保存</button></div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+}
+
+// 保存凭证
+async function saveCookie() {
+  const driveType = document.getElementById('drive-type').value;
+  const cookieValue = document.getElementById('cookie-value').value;
+  if (!cookieValue) {
+    alert('请输入 Cookie');
+    return;
+  }
+  try {
+    const res = await fetch('/api/media/cookie', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
+      },
+      body: JSON.stringify({ drive_type: driveType, cookie: cookieValue })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('凭证已保存');
+      document.getElementById('cookie-modal').remove();
+      loadCookieStatus();
+    } else {
+      alert('保存失败：' + (data.error || '未知错误'));
+    }
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
+}
+
+// 在 showTab 函数中添加加速面板加载
+const originalShowTab = showTab;
+showTab = function(tab) {
+  originalShowTab(tab);
+  if (tab === 'accel') {
+    loadAccelStats();
+    loadCookieStatus();
+    loadPlayRecords();
+  }
+};
+
+
+// 加载加速统计
+async function loadAccelStats() {
+  try {
+    const res = await fetch('/api/media/stats', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    const statsEl = document.getElementById('accel-stats');
+    if (data.success && data.stats) {
+      statsEl.innerHTML = '<div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"><div class="text-2xl mb-2">🚀</div><div class="text-2xl font-bold" id="stat-files">' + (data.stats.total_files || 0) + '</div><div class="text-sm text-gray-500">加速文件</div></div><div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"><div class="text-2xl mb-2">▶️</div><div class="text-2xl font-bold" id="stat-plays">' + (data.stats.total_plays || 0) + '</div><div class="text-sm text-gray-500">总播放次数</div></div><div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"><div class="text-2xl mb-2">⚡</div><div class="text-2xl font-bold" id="stat-time">' + Math.round(data.stats.avg_response_time || 0) + '</div><div class="text-sm text-gray-500">平均响应 (ms)</div></div>';
+    }
+  } catch (e) { console.error('Failed to load accel stats:', e); }
+}
+
+// 加载网盘凭证状态
+async function loadCookieStatus() {
+  try {
+    const res = await fetch('/api/media/cookie', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    const el = document.getElementById('cookie-status');
+    if (data.has_cookie) {
+      el.innerHTML = '<div class="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0" /></svg><span class="text-green-800 dark:text-green-200">凭证已加密存储</span></div><p class="text-xs text-gray-500 mt-2">上次更新：' + (data.updated_at || '未知') + '</p>';
+    } else {
+      el.innerHTML = '<div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"><p class="text-gray-500 dark:text-gray-400">暂无凭证，添加后可享受秒传加速服务</p></div>';
+    }
+  } catch (e) { console.error('Failed to load cookie status:', e); }
+}
+
+// 加载播放记录
+async function loadPlayRecords() {
+  try {
+    const res = await fetch('/api/media/records?limit=10', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    const el = document.getElementById('play-records');
+    if (data.records && data.records.length > 0) {
+      el.innerHTML = data.records.map(function(r) { return '<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"><div class="flex items-center space-x-3"><div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">' + (r.file_name ? r.file_name[0].toUpperCase() : '📁') + '</div><div><p class="font-medium text-gray-800 dark:text-white">' + (r.file_name || '未知文件') + '</p><p class="text-xs text-gray-500">播放 ' + (r.play_count || 1) + ' 次</p></div></div><div class="text-xs text-gray-500">' + (r.last_played || '').split('T')[0] + '</div></div>'; }).join('');
+    } else {
+      el.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">暂无播放记录</p>';
+    }
+  } catch (e) { console.error('Failed to load play records:', e); }
+}
+
+// 显示凭证弹窗
+function showCookieModal() {
+  const modalHtml = '<div id="cookie-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4"><h3 class="text-lg font-semibold mb-4">添加网盘凭证</h3><select id="drive-type" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700"><option value="115">115 网盘</option><option value="aliyun">阿里云盘</option></select><textarea id="cookie-value" placeholder="粘贴 Cookie 字符串..." class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white font-mono text-sm" rows="4"></textarea><div class="flex justify-end space-x-3 mt-4"><button onclick="document.getElementById('cookie-modal').remove()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button><button onclick="saveCookie()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">保存</button></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// 保存凭证
+async function saveCookie() {
+  const driveType = document.getElementById('drive-type').value;
+  const cookieValue = document.getElementById('cookie-value').value;
+  if (!cookieValue) { alert('请输入 Cookie'); return; }
+  try {
+    const res = await fetch('/api/media/cookie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+      body: JSON.stringify({ drive_type: driveType, cookie: cookieValue })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('凭证已保存');
+      document.getElementById('cookie-modal').remove();
+      loadCookieStatus();
+    } else {
+      alert('保存失败：' + (data.error || '未知错误'));
+    }
+  } catch (e) { alert('网络错误：' + e.message); }
+}
+</script>
+  <script src="/tailwind.min.js">
+// 加载加速统计
+async function loadAccelStats() {
+  try {
+    const res = await fetch('/api/media/stats', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    if (data.success && data.stats) {
+      document.getElementById('stat-files').textContent = data.stats.total_files || 0;
+      document.getElementById('stat-plays').textContent = data.stats.total_plays || data.stats.total_transfers || 0;
+      document.getElementById('stat-time').textContent = Math.round(data.stats.avg_response_time || 0);
+    }
+  } catch (e) {
+    console.error('Failed to load accel stats:', e);
+  }
+}
+
+// 加载网盘凭证状态
+async function loadCookieStatus() {
+  try {
+    const res = await fetch('/api/media/cookie', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    const container = document.getElementById('cookie-status');
+    if (data.has_cookie) {
+      container.innerHTML = '<div class="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0" /></svg><span class="text-green-800 dark:text-green-200">凭证已加密存储</span></div><p class="text-xs text-gray-500 mt-2">上次更新：' + (data.updated_at || '未知') + '</p>';
+    } else {
+      container.innerHTML = '<div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"><p class="text-gray-500 dark:text-gray-400">暂无凭证，添加后可享受秒传加速服务</p></div>';
+    }
+  } catch (e) {
+    console.error('Failed to load cookie status:', e);
+  }
+}
+
+// 加载播放记录
+async function loadPlayRecords() {
+  try {
+    const res = await fetch('/api/media/records?limit=10', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    const container = document.getElementById('play-records');
+    if (data.records && data.records.length > 0) {
+      container.innerHTML = data.records.map(r => '<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"><div class="flex items-center space-x-3"><div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">' + (r.file_name ? r.file_name[0].toUpperCase() : '📁') + '</div><div><p class="font-medium text-gray-800 dark:text-white">' + (r.file_name || '未知文件') + '</p><p class="text-xs text-gray-500">播放 ' + (r.play_count || 1) + ' 次</p></div></div><div class="text-xs text-gray-500">' + (r.last_played || '').split('T')[0] + '</div></div>').join('');
+    } else {
+      container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">暂无播放记录</p>';
+    }
+  } catch (e) {
+    console.error('Failed to load play records:', e);
+    document.getElementById('play-records').innerHTML = '<p class="text-gray-500 text-center py-8">加载失败</p>';
+  }
+}
+
+// 显示凭证弹窗
+function showCookieModal() {
+  const modal = document.getElementById('cookie-modal');
+  if (modal) modal.classList.remove('hidden');
+  else {
+    // 创建弹窗
+    const modalHtml = '<div id="cookie-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4"><h3 class="text-lg font-semibold mb-4">添加网盘凭证</h3><select id="drive-type" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700"><option value="115">115 网盘</option><option value="aliyun">阿里云盘</option></select><textarea id="cookie-value" placeholder="粘贴 Cookie 字符串..." class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white font-mono text-sm" rows="4"></textarea><div class="flex justify-end space-x-3 mt-4"><button onclick="document.getElementById('cookie-modal').remove()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button><button onclick="saveCookie()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">保存</button></div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+}
+
+// 保存凭证
+async function saveCookie() {
+  const driveType = document.getElementById('drive-type').value;
+  const cookieValue = document.getElementById('cookie-value').value;
+  if (!cookieValue) {
+    alert('请输入 Cookie');
+    return;
+  }
+  try {
+    const res = await fetch('/api/media/cookie', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
+      },
+      body: JSON.stringify({ drive_type: driveType, cookie: cookieValue })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('凭证已保存');
+      document.getElementById('cookie-modal').remove();
+      loadCookieStatus();
+    } else {
+      alert('保存失败：' + (data.error || '未知错误'));
+    }
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
+}
+
+// 在 showTab 函数中添加加速面板加载
+const originalShowTab = showTab;
+showTab = function(tab) {
+  originalShowTab(tab);
+  if (tab === 'accel') {
+    loadAccelStats();
+    loadCookieStatus();
+    loadPlayRecords();
+  }
+};
+
+
+// 加载加速统计
+async function loadAccelStats() {
+  try {
+    const res = await fetch('/api/media/stats', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    const statsEl = document.getElementById('accel-stats');
+    if (data.success && data.stats) {
+      statsEl.innerHTML = '<div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"><div class="text-2xl mb-2">🚀</div><div class="text-2xl font-bold" id="stat-files">' + (data.stats.total_files || 0) + '</div><div class="text-sm text-gray-500">加速文件</div></div><div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"><div class="text-2xl mb-2">▶️</div><div class="text-2xl font-bold" id="stat-plays">' + (data.stats.total_plays || 0) + '</div><div class="text-sm text-gray-500">总播放次数</div></div><div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"><div class="text-2xl mb-2">⚡</div><div class="text-2xl font-bold" id="stat-time">' + Math.round(data.stats.avg_response_time || 0) + '</div><div class="text-sm text-gray-500">平均响应 (ms)</div></div>';
+    }
+  } catch (e) { console.error('Failed to load accel stats:', e); }
+}
+
+// 加载网盘凭证状态
+async function loadCookieStatus() {
+  try {
+    const res = await fetch('/api/media/cookie', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    const el = document.getElementById('cookie-status');
+    if (data.has_cookie) {
+      el.innerHTML = '<div class="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0" /></svg><span class="text-green-800 dark:text-green-200">凭证已加密存储</span></div><p class="text-xs text-gray-500 mt-2">上次更新：' + (data.updated_at || '未知') + '</p>';
+    } else {
+      el.innerHTML = '<div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"><p class="text-gray-500 dark:text-gray-400">暂无凭证，添加后可享受秒传加速服务</p></div>';
+    }
+  } catch (e) { console.error('Failed to load cookie status:', e); }
+}
+
+// 加载播放记录
+async function loadPlayRecords() {
+  try {
+    const res = await fetch('/api/media/records?limit=10', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    const el = document.getElementById('play-records');
+    if (data.records && data.records.length > 0) {
+      el.innerHTML = data.records.map(function(r) { return '<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"><div class="flex items-center space-x-3"><div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">' + (r.file_name ? r.file_name[0].toUpperCase() : '📁') + '</div><div><p class="font-medium text-gray-800 dark:text-white">' + (r.file_name || '未知文件') + '</p><p class="text-xs text-gray-500">播放 ' + (r.play_count || 1) + ' 次</p></div></div><div class="text-xs text-gray-500">' + (r.last_played || '').split('T')[0] + '</div></div>'; }).join('');
+    } else {
+      el.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">暂无播放记录</p>';
+    }
+  } catch (e) { console.error('Failed to load play records:', e); }
+}
+
+// 显示凭证弹窗
+function showCookieModal() {
+  const modalHtml = '<div id="cookie-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4"><h3 class="text-lg font-semibold mb-4">添加网盘凭证</h3><select id="drive-type" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700"><option value="115">115 网盘</option><option value="aliyun">阿里云盘</option></select><textarea id="cookie-value" placeholder="粘贴 Cookie 字符串..." class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white font-mono text-sm" rows="4"></textarea><div class="flex justify-end space-x-3 mt-4"><button onclick="document.getElementById('cookie-modal').remove()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button><button onclick="saveCookie()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">保存</button></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// 保存凭证
+async function saveCookie() {
+  const driveType = document.getElementById('drive-type').value;
+  const cookieValue = document.getElementById('cookie-value').value;
+  if (!cookieValue) { alert('请输入 Cookie'); return; }
+  try {
+    const res = await fetch('/api/media/cookie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+      body: JSON.stringify({ drive_type: driveType, cookie: cookieValue })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('凭证已保存');
+      document.getElementById('cookie-modal').remove();
+      loadCookieStatus();
+    } else {
+      alert('保存失败：' + (data.error || '未知错误'));
+    }
+  } catch (e) { alert('网络错误：' + e.message); }
+}
+</script>
+  <script src="/lucide.min.js">
+// 加载加速统计
+async function loadAccelStats() {
+  try {
+    const res = await fetch('/api/media/stats', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    if (data.success && data.stats) {
+      document.getElementById('stat-files').textContent = data.stats.total_files || 0;
+      document.getElementById('stat-plays').textContent = data.stats.total_plays || data.stats.total_transfers || 0;
+      document.getElementById('stat-time').textContent = Math.round(data.stats.avg_response_time || 0);
+    }
+  } catch (e) {
+    console.error('Failed to load accel stats:', e);
+  }
+}
+
+// 加载网盘凭证状态
+async function loadCookieStatus() {
+  try {
+    const res = await fetch('/api/media/cookie', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    const container = document.getElementById('cookie-status');
+    if (data.has_cookie) {
+      container.innerHTML = '<div class="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0" /></svg><span class="text-green-800 dark:text-green-200">凭证已加密存储</span></div><p class="text-xs text-gray-500 mt-2">上次更新：' + (data.updated_at || '未知') + '</p>';
+    } else {
+      container.innerHTML = '<div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"><p class="text-gray-500 dark:text-gray-400">暂无凭证，添加后可享受秒传加速服务</p></div>';
+    }
+  } catch (e) {
+    console.error('Failed to load cookie status:', e);
+  }
+}
+
+// 加载播放记录
+async function loadPlayRecords() {
+  try {
+    const res = await fetch('/api/media/records?limit=10', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    const container = document.getElementById('play-records');
+    if (data.records && data.records.length > 0) {
+      container.innerHTML = data.records.map(r => '<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"><div class="flex items-center space-x-3"><div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">' + (r.file_name ? r.file_name[0].toUpperCase() : '📁') + '</div><div><p class="font-medium text-gray-800 dark:text-white">' + (r.file_name || '未知文件') + '</p><p class="text-xs text-gray-500">播放 ' + (r.play_count || 1) + ' 次</p></div></div><div class="text-xs text-gray-500">' + (r.last_played || '').split('T')[0] + '</div></div>').join('');
+    } else {
+      container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">暂无播放记录</p>';
+    }
+  } catch (e) {
+    console.error('Failed to load play records:', e);
+    document.getElementById('play-records').innerHTML = '<p class="text-gray-500 text-center py-8">加载失败</p>';
+  }
+}
+
+// 显示凭证弹窗
+function showCookieModal() {
+  const modal = document.getElementById('cookie-modal');
+  if (modal) modal.classList.remove('hidden');
+  else {
+    // 创建弹窗
+    const modalHtml = '<div id="cookie-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4"><h3 class="text-lg font-semibold mb-4">添加网盘凭证</h3><select id="drive-type" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700"><option value="115">115 网盘</option><option value="aliyun">阿里云盘</option></select><textarea id="cookie-value" placeholder="粘贴 Cookie 字符串..." class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white font-mono text-sm" rows="4"></textarea><div class="flex justify-end space-x-3 mt-4"><button onclick="document.getElementById('cookie-modal').remove()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button><button onclick="saveCookie()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">保存</button></div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+}
+
+// 保存凭证
+async function saveCookie() {
+  const driveType = document.getElementById('drive-type').value;
+  const cookieValue = document.getElementById('cookie-value').value;
+  if (!cookieValue) {
+    alert('请输入 Cookie');
+    return;
+  }
+  try {
+    const res = await fetch('/api/media/cookie', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
+      },
+      body: JSON.stringify({ drive_type: driveType, cookie: cookieValue })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('凭证已保存');
+      document.getElementById('cookie-modal').remove();
+      loadCookieStatus();
+    } else {
+      alert('保存失败：' + (data.error || '未知错误'));
+    }
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
+}
+
+// 在 showTab 函数中添加加速面板加载
+const originalShowTab = showTab;
+showTab = function(tab) {
+  originalShowTab(tab);
+  if (tab === 'accel') {
+    loadAccelStats();
+    loadCookieStatus();
+    loadPlayRecords();
+  }
+};
+
+
+// 加载加速统计
+async function loadAccelStats() {
+  try {
+    const res = await fetch('/api/media/stats', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    const statsEl = document.getElementById('accel-stats');
+    if (data.success && data.stats) {
+      statsEl.innerHTML = '<div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"><div class="text-2xl mb-2">🚀</div><div class="text-2xl font-bold" id="stat-files">' + (data.stats.total_files || 0) + '</div><div class="text-sm text-gray-500">加速文件</div></div><div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"><div class="text-2xl mb-2">▶️</div><div class="text-2xl font-bold" id="stat-plays">' + (data.stats.total_plays || 0) + '</div><div class="text-sm text-gray-500">总播放次数</div></div><div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"><div class="text-2xl mb-2">⚡</div><div class="text-2xl font-bold" id="stat-time">' + Math.round(data.stats.avg_response_time || 0) + '</div><div class="text-sm text-gray-500">平均响应 (ms)</div></div>';
+    }
+  } catch (e) { console.error('Failed to load accel stats:', e); }
+}
+
+// 加载网盘凭证状态
+async function loadCookieStatus() {
+  try {
+    const res = await fetch('/api/media/cookie', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    const el = document.getElementById('cookie-status');
+    if (data.has_cookie) {
+      el.innerHTML = '<div class="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0" /></svg><span class="text-green-800 dark:text-green-200">凭证已加密存储</span></div><p class="text-xs text-gray-500 mt-2">上次更新：' + (data.updated_at || '未知') + '</p>';
+    } else {
+      el.innerHTML = '<div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"><p class="text-gray-500 dark:text-gray-400">暂无凭证，添加后可享受秒传加速服务</p></div>';
+    }
+  } catch (e) { console.error('Failed to load cookie status:', e); }
+}
+
+// 加载播放记录
+async function loadPlayRecords() {
+  try {
+    const res = await fetch('/api/media/records?limit=10', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    const el = document.getElementById('play-records');
+    if (data.records && data.records.length > 0) {
+      el.innerHTML = data.records.map(function(r) { return '<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"><div class="flex items-center space-x-3"><div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">' + (r.file_name ? r.file_name[0].toUpperCase() : '📁') + '</div><div><p class="font-medium text-gray-800 dark:text-white">' + (r.file_name || '未知文件') + '</p><p class="text-xs text-gray-500">播放 ' + (r.play_count || 1) + ' 次</p></div></div><div class="text-xs text-gray-500">' + (r.last_played || '').split('T')[0] + '</div></div>'; }).join('');
+    } else {
+      el.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">暂无播放记录</p>';
+    }
+  } catch (e) { console.error('Failed to load play records:', e); }
+}
+
+// 显示凭证弹窗
+function showCookieModal() {
+  const modalHtml = '<div id="cookie-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4"><h3 class="text-lg font-semibold mb-4">添加网盘凭证</h3><select id="drive-type" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700"><option value="115">115 网盘</option><option value="aliyun">阿里云盘</option></select><textarea id="cookie-value" placeholder="粘贴 Cookie 字符串..." class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white font-mono text-sm" rows="4"></textarea><div class="flex justify-end space-x-3 mt-4"><button onclick="document.getElementById('cookie-modal').remove()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button><button onclick="saveCookie()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">保存</button></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// 保存凭证
+async function saveCookie() {
+  const driveType = document.getElementById('drive-type').value;
+  const cookieValue = document.getElementById('cookie-value').value;
+  if (!cookieValue) { alert('请输入 Cookie'); return; }
+  try {
+    const res = await fetch('/api/media/cookie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+      body: JSON.stringify({ drive_type: driveType, cookie: cookieValue })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('凭证已保存');
+      document.getElementById('cookie-modal').remove();
+      loadCookieStatus();
+    } else {
+      alert('保存失败：' + (data.error || '未知错误'));
+    }
+  } catch (e) { alert('网络错误：' + e.message); }
+}
+</script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('/inter-font.css');
     * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -114,7 +639,18 @@
       <button onclick="showTab('shop')" id="tab-shop" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
         <i data-lucide="shopping-bag" class="w-4 h-4"></i><span>商城</span>
       </button>
-      <button onclick="showTab('rank')" id="tab-rank" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+            <!-- 播放加速 -->
+      <button onclick="showTab('accel')" id="tab-accel" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+        <i data-lucide="zap" class="w-4 h-4"></i>
+        <span>播放加速</span>
+      </button>
+      <button onclick="showTab('rank')" id="tab-rank"
+      <!-- 播放加速 -->
+      <button onclick="showTab('accel')" id="tab-accel" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+        <i data-lucide="zap" class="w-4 h-4"></i>
+        <span>播放加速</span>
+      </button>
+ class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
         <i data-lucide="trophy" class="w-4 h-4"></i><span>排行榜</span>
       </button>
       <button onclick="showTab('invite')" id="tab-invite" class="tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
@@ -270,7 +806,40 @@
     </div>
 
     <!-- Rank Tab -->
+        <!-- 播放加速面板 -->
+    <div id="panel-accel" class="tab-panel hidden">
+      <div class="max-w-4xl mx-auto space-y-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">🚀 播放加速</h2>
+        <div id="accel-stats" class="grid grid-cols-3 gap-4 mb-6"></div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+          <h3 class="text-lg font-semibold mb-4">🔐 网盘凭证</h3>
+          <div id="cookie-status"></div>
+          <button onclick="showCookieModal()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">添加凭证</button>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+          <h3 class="text-lg font-semibold mb-4">📜 播放记录</h3>
+          <div id="play-records"></div>
+        </div>
+      </div>
+    </div>
     <div id="panel-rank" class="tab-panel hidden">
+    <!-- 播放加速面板 -->
+    <div id="panel-accel" class="tab-panel hidden">
+      <div class="max-w-4xl mx-auto space-y-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">🚀 播放加速</h2>
+        <div id="accel-stats" class="grid grid-cols-3 gap-4 mb-6"></div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+          <h3 class="text-lg font-semibold mb-4">🔐 网盘凭证</h3>
+          <div id="cookie-status"></div>
+          <button onclick="showCookieModal()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">添加凭证</button>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+          <h3 class="text-lg font-semibold mb-4">📜 播放记录</h3>
+          <div id="play-records"></div>
+        </div>
+      </div>
+    </div>
+
       <div class="flex space-x-2 mb-4">
         <button onclick="loadLeaderboard('coins')" id="rank-btn-coins" class="flex-1 py-2 px-4 rounded-xl text-sm font-medium bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
           <i data-lucide="coins" class="w-4 h-4 inline mr-1"></i>金币
@@ -453,6 +1022,7 @@
       if (name === 'invite') loadInviteCodes();
       if (name === 'ticket') loadTickets();
       if (name === 'admin') loadAdminStats();
+      if (name === 'accel') { loadAccelStats(); loadCookieStatus(); loadPlayRecords(); }
     }
 
     async function loadUserInfo() {
@@ -804,6 +1374,181 @@
     function closeModal() {
       document.getElementById('modal').classList.add('hidden');
     }
-  </script>
+  
+// 加载加速统计
+async function loadAccelStats() {
+  try {
+    const res = await fetch('/api/media/stats', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    if (data.success && data.stats) {
+      document.getElementById('stat-files').textContent = data.stats.total_files || 0;
+      document.getElementById('stat-plays').textContent = data.stats.total_plays || data.stats.total_transfers || 0;
+      document.getElementById('stat-time').textContent = Math.round(data.stats.avg_response_time || 0);
+    }
+  } catch (e) {
+    console.error('Failed to load accel stats:', e);
+  }
+}
+
+// 加载网盘凭证状态
+async function loadCookieStatus() {
+  try {
+    const res = await fetch('/api/media/cookie', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    const container = document.getElementById('cookie-status');
+    if (data.has_cookie) {
+      container.innerHTML = '<div class="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0" /></svg><span class="text-green-800 dark:text-green-200">凭证已加密存储</span></div><p class="text-xs text-gray-500 mt-2">上次更新：' + (data.updated_at || '未知') + '</p>';
+    } else {
+      container.innerHTML = '<div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"><p class="text-gray-500 dark:text-gray-400">暂无凭证，添加后可享受秒传加速服务</p></div>';
+    }
+  } catch (e) {
+    console.error('Failed to load cookie status:', e);
+  }
+}
+
+// 加载播放记录
+async function loadPlayRecords() {
+  try {
+    const res = await fetch('/api/media/records?limit=10', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    const container = document.getElementById('play-records');
+    if (data.records && data.records.length > 0) {
+      container.innerHTML = data.records.map(r => '<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"><div class="flex items-center space-x-3"><div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">' + (r.file_name ? r.file_name[0].toUpperCase() : '📁') + '</div><div><p class="font-medium text-gray-800 dark:text-white">' + (r.file_name || '未知文件') + '</p><p class="text-xs text-gray-500">播放 ' + (r.play_count || 1) + ' 次</p></div></div><div class="text-xs text-gray-500">' + (r.last_played || '').split('T')[0] + '</div></div>').join('');
+    } else {
+      container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">暂无播放记录</p>';
+    }
+  } catch (e) {
+    console.error('Failed to load play records:', e);
+    document.getElementById('play-records').innerHTML = '<p class="text-gray-500 text-center py-8">加载失败</p>';
+  }
+}
+
+// 显示凭证弹窗
+function showCookieModal() {
+  const modal = document.getElementById('cookie-modal');
+  if (modal) modal.classList.remove('hidden');
+  else {
+    // 创建弹窗
+    const modalHtml = '<div id="cookie-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4"><h3 class="text-lg font-semibold mb-4">添加网盘凭证</h3><select id="drive-type" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700"><option value="115">115 网盘</option><option value="aliyun">阿里云盘</option></select><textarea id="cookie-value" placeholder="粘贴 Cookie 字符串..." class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white font-mono text-sm" rows="4"></textarea><div class="flex justify-end space-x-3 mt-4"><button onclick="document.getElementById('cookie-modal').remove()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button><button onclick="saveCookie()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">保存</button></div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+}
+
+// 保存凭证
+async function saveCookie() {
+  const driveType = document.getElementById('drive-type').value;
+  const cookieValue = document.getElementById('cookie-value').value;
+  if (!cookieValue) {
+    alert('请输入 Cookie');
+    return;
+  }
+  try {
+    const res = await fetch('/api/media/cookie', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
+      },
+      body: JSON.stringify({ drive_type: driveType, cookie: cookieValue })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('凭证已保存');
+      document.getElementById('cookie-modal').remove();
+      loadCookieStatus();
+    } else {
+      alert('保存失败：' + (data.error || '未知错误'));
+    }
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
+}
+
+// 在 showTab 函数中添加加速面板加载
+const originalShowTab = showTab;
+showTab = function(tab) {
+  originalShowTab(tab);
+  if (tab === 'accel') {
+    loadAccelStats();
+    loadCookieStatus();
+    loadPlayRecords();
+  }
+};
+
+
+// 加载加速统计
+async function loadAccelStats() {
+  try {
+    const res = await fetch('/api/media/stats', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    const statsEl = document.getElementById('accel-stats');
+    if (data.success && data.stats) {
+      statsEl.innerHTML = '<div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"><div class="text-2xl mb-2">🚀</div><div class="text-2xl font-bold" id="stat-files">' + (data.stats.total_files || 0) + '</div><div class="text-sm text-gray-500">加速文件</div></div><div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"><div class="text-2xl mb-2">▶️</div><div class="text-2xl font-bold" id="stat-plays">' + (data.stats.total_plays || 0) + '</div><div class="text-sm text-gray-500">总播放次数</div></div><div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"><div class="text-2xl mb-2">⚡</div><div class="text-2xl font-bold" id="stat-time">' + Math.round(data.stats.avg_response_time || 0) + '</div><div class="text-sm text-gray-500">平均响应 (ms)</div></div>';
+    }
+  } catch (e) { console.error('Failed to load accel stats:', e); }
+}
+
+// 加载网盘凭证状态
+async function loadCookieStatus() {
+  try {
+    const res = await fetch('/api/media/cookie', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    const el = document.getElementById('cookie-status');
+    if (data.has_cookie) {
+      el.innerHTML = '<div class="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0" /></svg><span class="text-green-800 dark:text-green-200">凭证已加密存储</span></div><p class="text-xs text-gray-500 mt-2">上次更新：' + (data.updated_at || '未知') + '</p>';
+    } else {
+      el.innerHTML = '<div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"><p class="text-gray-500 dark:text-gray-400">暂无凭证，添加后可享受秒传加速服务</p></div>';
+    }
+  } catch (e) { console.error('Failed to load cookie status:', e); }
+}
+
+// 加载播放记录
+async function loadPlayRecords() {
+  try {
+    const res = await fetch('/api/media/records?limit=10', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    const el = document.getElementById('play-records');
+    if (data.records && data.records.length > 0) {
+      el.innerHTML = data.records.map(function(r) { return '<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"><div class="flex items-center space-x-3"><div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">' + (r.file_name ? r.file_name[0].toUpperCase() : '📁') + '</div><div><p class="font-medium text-gray-800 dark:text-white">' + (r.file_name || '未知文件') + '</p><p class="text-xs text-gray-500">播放 ' + (r.play_count || 1) + ' 次</p></div></div><div class="text-xs text-gray-500">' + (r.last_played || '').split('T')[0] + '</div></div>'; }).join('');
+    } else {
+      el.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">暂无播放记录</p>';
+    }
+  } catch (e) { console.error('Failed to load play records:', e); }
+}
+
+// 显示凭证弹窗
+function showCookieModal() {
+  const modalHtml = '<div id="cookie-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4"><h3 class="text-lg font-semibold mb-4">添加网盘凭证</h3><select id="drive-type" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700"><option value="115">115 网盘</option><option value="aliyun">阿里云盘</option></select><textarea id="cookie-value" placeholder="粘贴 Cookie 字符串..." class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white font-mono text-sm" rows="4"></textarea><div class="flex justify-end space-x-3 mt-4"><button onclick="document.getElementById('cookie-modal').remove()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button><button onclick="saveCookie()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">保存</button></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// 保存凭证
+async function saveCookie() {
+  const driveType = document.getElementById('drive-type').value;
+  const cookieValue = document.getElementById('cookie-value').value;
+  if (!cookieValue) { alert('请输入 Cookie'); return; }
+  try {
+    const res = await fetch('/api/media/cookie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+      body: JSON.stringify({ drive_type: driveType, cookie: cookieValue })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('凭证已保存');
+      document.getElementById('cookie-modal').remove();
+      loadCookieStatus();
+    } else {
+      alert('保存失败：' + (data.error || '未知错误'));
+    }
+  } catch (e) { alert('网络错误：' + e.message); }
+}
+</script>
 </body>
 </html>
